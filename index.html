@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventario Taller</title>
+  <!-- Estilos propios -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Librerías de QR -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+</head>
+<body>
+
+  <header>
+    <h1>Gestión de Inventario Taller</h1>
+  </header>
+
+  <!-- Menú de Pestañas -->
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="cambiarSeccion('registrar', event)">Registrar Nuevo</button>
+    <button class="nav-tab" onclick="cambiarSeccion('entradas', event)">Entradas</button>
+    <button class="nav-tab" onclick="cambiarSeccion('salidas', event)">Salidas</button>
+    <button class="nav-tab" onclick="cambiarSeccion('mercancia', event)">Mercancía</button>
+    <button class="nav-tab" onclick="cambiarSeccion('actual', event)">Inventario</button>
+  </nav>
+
+  <!-- SECCIÓN 1: Registrar Nuevo -->
+  <section id="registrar" class="section-content active">
+    <h2>Alta de Producto Nuevo / Generar QR</h2>
+    <label for="codigo-reg">Código o SKU:</label>
+    <input type="text" id="codigo-reg" placeholder="Ej. HERRAMIENTA-001">
+
+    <label for="nombre-reg">Nombre del Producto:</label>
+    <input type="text" id="nombre-reg" placeholder="Ej. Taladro Percutor">
+
+    <button onclick="guardarNuevoProducto()">Crear y Generar QR</button>
+    
+    <div style="text-align: center; margin-top: 20px;">
+      <h3>Código QR Generado</h3>
+      <div id="qrcode"></div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 2: Entradas -->
+  <section id="entradas" class="section-content">
+    <h2>Registrar Entrada de Mercancía</h2>
+    <div class="scanner-box">
+      <video id="video-entrada" playsinline></video>
+      <p id="resultado-entrada" class="resultado-scan">Esperando escaneo de entrada...</p>
+      <button onclick="reiniciarEscaneo('entrada')">Escanear otro</button>
+    </div>
+    
+    <div id="panel-confirmar-entrada" style="margin-top: 15px; display:none; background: #e8f8f5; padding: 15px; border-radius: 5px;">
+      <p><strong>Producto detectado:</strong> <span id="lbl-prod-entrada">---</span></p>
+      <label for="cantidad-entrada">Cantidad a agregar:</label>
+      <input type="number" id="cantidad-entrada" value="1" min="1">
+      <button class="btn-success" onclick="confirmarEntrada()">Confirmar y Agregar a Mercancía</button>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 3: Salidas -->
+  <section id="salidas" class="section-content">
+    <h2>Registrar Salida de Material</h2>
+    <div class="scanner-box">
+      <video id="video-salida" playsinline></video>
+      <p id="resultado-salida" class="resultado-scan">Esperando escaneo de salida...</p>
+      <button onclick="reiniciarEscaneo('salida')">Escanear otro</button>
+    </div>
+    
+    <div id="panel-confirmar-salida" style="margin-top: 15px; display:none; background: #ffdada; padding: 15px; border-radius: 5px;">
+      <p><strong>Producto detectado:</strong> <span id="lbl-prod-salida">---</span></p>
+      <label for="cantidad-salida">Cantidad a retirar:</label>
+      <input type="number" id="cantidad-salida" value="1" min="1">
+      <button class="btn-danger" onclick="confirmarSalida()">Confirmar Salida</button>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 4: Mercancía -->
+  <section id="mercancia" class="section-content">
+    <h2>Historial / Registro de Mercancía</h2>
+    <p>Aquí se listarán todas las entradas y movimientos de mercancía.</p>
+    <div id="lista-mercancia">
+      <p style="color: #7f8c8d; font-style: italic;">Sin movimientos registrados aún.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 5: Inventario Actual -->
+  <section id="actual" class="section-content">
+    <h2>Inventario Actual</h2>
+    <p>Existencias totales por producto:</p>
+    <div id="lista-inventario">
+      <p style="color: #7f8c8d; font-style: italic;">Cargando inventario...</p>
+    </div>
+  </section>
+
+  <!-- Inicialización de Firebase con tus credenciales reales -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBsPup3vz23Q2zzgBGUJCTNiZZn1-YT7w8",
+      authDomain: "inventario-taller-d9470.firebaseapp.com",
+      projectId: "inventario-taller-d9470",
+      storageBucket: "inventario-taller-d9470.firebasestorage.app",
+      messagingSenderId: "840427225170",
+      appId: "1:840427225170:web:f611b44de50f42fe741f8b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Guardamos 'db' globalmente para que app.js pueda consultarla
+    window.db = db;
+    console.log("¡Firebase conectado exitosamente!");
+  </script>
+
+  <!-- Script externo de la aplicación -->
+  <script src="app.js"></script>
+</body>
+</html>
