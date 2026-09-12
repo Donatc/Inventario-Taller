@@ -21,7 +21,7 @@
     <button class="nav-tab active" onclick="cambiarSeccion('registrar', event)">Registrar Nuevo</button>
     <button class="nav-tab" onclick="cambiarSeccion('entradas', event)">Entradas</button>
     <button class="nav-tab" onclick="cambiarSeccion('salidas', event)">Salidas</button>
-    <button class="nav-tab" onclick="cambiarSeccion('mercancia', event)">Mercancía</button>
+    <button class="nav-tab" onclick="cambiarSeccion('mercancia', event)">Historial</button>
     <button class="nav-tab" onclick="cambiarSeccion('actual', event)">Inventario</button>
   </nav>
 
@@ -34,12 +34,7 @@
     <label for="nombre-reg">Nombre del Producto:</label>
     <input type="text" id="nombre-reg" placeholder="Ej. Taladro Percutor">
 
-    <button onclick="guardarNuevoProducto()">Crear y Generar QR</button>
-    
-    <div style="text-align: center; margin-top: 20px;">
-      <h3>Código QR Generado</h3>
-      <div id="qrcode"></div>
-    </div>
+    <button onclick="guardarNuevoProducto()">Guardar producto y crear QR</button>
   </section>
 
   <!-- SECCIÓN 2: Entradas -->
@@ -102,10 +97,28 @@
 
   <!-- SECCIÓN 5: Inventario Actual -->
   <section id="actual" class="section-content">
-    <h2>Inventario Actual</h2>
-    <p>Existencias totales por producto:</p>
-    <div id="lista-inventario">
-      <p style="color: #7f8c8d; font-style: italic;">Cargando inventario...</p>
+    <h2>Control de Inventario</h2>
+    
+    <!-- Botones de sub-sección -->
+    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+      <button type="button" onclick="cambiarVistaInventario('stock')" id="btn-vista-stock" style="background: #3498db; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">Stock Actual</button>
+      <button type="button" onclick="cambiarVistaInventario('catalogo')" id="btn-vista-catalogo" style="background: #95a5a6; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">Inventario General (Catálogo y QR)</button>
+    </div>
+
+    <!-- Contenedor 1: Stock Actual -->
+    <div id="subseccion-stock">
+      <p>Existencias totales por producto:</p>
+      <div id="lista-inventario">
+        <p style="color: #7f8c8d; font-style: italic;">Cargando inventario...</p>
+      </div>
+    </div>
+
+    <!-- Contenedor 2: Catálogo General y Códigos QR -->
+    <div id="subseccion-catalogo" style="display: none;">
+      <p>Lista de todos los productos registrados en el sistema y sus códigos QR asignados:</p>
+      <div id="lista-catalogo-qr">
+        <p style="color: #7f8c8d; font-style: italic;">Cargando catálogo general...</p>
+      </div>
     </div>
   </section>
 

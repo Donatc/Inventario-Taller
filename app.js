@@ -15,16 +15,39 @@ function cambiarSeccion(seccionId, evento) {
 
   detenerCamara();
   if (seccionId === 'entradas') {
-    // Si ya hay un XML cargado, iniciamos la cámara automáticamente
     if (xmlCargadoValido) {
       iniciarCamara('entrada');
     }
   } else if (seccionId === 'salidas') {
     iniciarCamara('salida');
   } else if (seccionId === 'actual') {
-    cargarInventarioActual();
+    cambiarVistaInventario('stock');
   } else if (seccionId === 'mercancia') {
     cargarHistorialMercancia();
+  }
+}
+
+// Control de vistas en Inventario (Stock / Catálogo QR General)
+function cambiarVistaInventario(vista) {
+  const btnStock = document.getElementById("btn-vista-stock");
+  const btnCatalogo = document.getElementById("btn-vista-catalogo");
+  const divStock = document.getElementById("subseccion-stock");
+  const divCatalogo = document.getElementById("subseccion-catalogo");
+
+  if (!btnStock || !btnCatalogo || !divStock || !divCatalogo) return;
+
+  if (vista === 'stock') {
+    btnStock.style.background = "#3498db";
+    btnCatalogo.style.background = "#95a5a6";
+    divStock.style.display = "block";
+    divCatalogo.style.display = "none";
+    cargarInventarioActual();
+  } else {
+    btnStock.style.background = "#95a5a6";
+    btnCatalogo.style.background = "#3498db";
+    divStock.style.display = "none";
+    divCatalogo.style.display = "block";
+    cargarCatalogoGeneralQR();
   }
 }
 
@@ -63,14 +86,13 @@ function procesarXMLOrdenCompra(event) {
           htmlResumen += `<li><b>${codigo}</b> - ${descripcion} (Esperados: <b>${cantidad}</b>)</li>`;
         }
       } else {
-        alert("No se detectaron nodos de productos estándar (Concepto/Item) en el XML. Asegúrate de que el formato sea compatible.");
+        alert("No se detectaron nodos de productos estándar (Concepto/Item) en el XML.");
         return;
       }
 
       htmlResumen += "</ul>";
       document.getElementById("resumen-xml").innerHTML = htmlResumen;
       
-      // Mostramos la sección del escáner y activamos la bandera
       document.getElementById("contenedor-escanner-entradas").style.display = "block";
       xmlCargadoValido = true;
       
@@ -79,13 +101,13 @@ function procesarXMLOrdenCompra(event) {
 
     } catch (error) {
       console.error("Error al parsear el XML:", error);
-      alert("Hubo un error al leer el archivo XML. Verifica que esté bien formado.");
+      alert("Hubo un error al leer el archivo XML.");
     }
   };
   lector.readAsText(archivo);
 }
 
-// 2. GUARDAR NUEVO PRODUCTO EN FIRESTORE
+// 2. GUARDAR NUEVO PRODUCTO EN FIRESTORE (Sin mostrar QR en esta pantalla)
 async function guardarNuevoProducto() {
   const codigo = document.getElementById("codigo-reg").value.trim();
   const nombre = document.getElementById("nombre-reg").value.trim();
@@ -105,17 +127,12 @@ async function guardarNuevoProducto() {
       fechaCreacion: new Date()
     });
 
-    const contenedor = document.getElementById("qrcode");
-    contenedor.innerHTML = "";
+    alert(`¡Producto "${nombre}" registrado con éxito! Su código QR ya está disponible en el Inventario General.`);
     
-    QRCode.toCanvas(codigo, { width: 180 }, function (err, canvas) {
-      if (err) { console.error(err); return; }
-      contenedor.appendChild(canvas);
-    });
-
-    alert(`Producto "${nombre}" registrado con éxito en la nube.`);
+    // Limpiamos los campos
     document.getElementById("codigo-reg").value = "";
     document.getElementById("nombre-reg").value = "";
+    
   } catch (error) {
     console.error("Error al guardar producto: ", error);
     alert("Hubo un error al guardar en la base de datos.");
@@ -168,11 +185,10 @@ function bucleEscaneo(tipo) {
       if (tipo === 'entrada') {
         document.getElementById('lbl-prod-entrada').textContent = code.data;
         
-        // Verificamos si existe en la orden XML cargada para mostrar las cantidades de referencia
         if (ordenCompraActual[code.data]) {
           document.getElementById('lbl-cant-xml').textContent = ordenCompraActual[code.data].cantidadEsperada;
           document.getElementById('lbl-cant-scan').textContent = ordenCompraActual[code.data].cantidadEscaneada;
-          document.getElementById('cantidad-entrada').value = ordenCompraActual[code.data].cantidadEsperada - ordenCompraActual[code.data].cantidadEscaneada > 0 ? 
+          document.getElementById('cantidad-entrada').value = (ordenCompraActual[code.data].cantidadEsperada - ordenCompraActual[code.data].cantidadEscaneada) > 0 ? 
             (ordenCompraActual[code.data].cantidadEsperada - ordenCompraActual[code.data].cantidadEscaneada) : 1;
         } else {
           document.getElementById('lbl-cant-xml').textContent = "No listado en XML";
@@ -205,7 +221,7 @@ function reiniciarEscaneo(tipo) {
   requestAnimationFrame(() => bucleEscaneo(tipo));
 }
 
-// 3. CONFIRMAR ENTRADA EN LA NUBE (VALIDADA CONTRA XML)
+// 3. CONFIRMAR ENTRADA EN LA NUBE
 async function confirmarEntrada() {
   const cantidad = parseInt(document.getElementById("cantidad-entrada").value);
   if (!cantidad || cantidad <= 0) return alert("Ingresa una cantidad válida.");
@@ -213,7 +229,7 @@ async function confirmarEntrada() {
   if (xmlCargadoValido && !ordenCompraActual[codigoEscaneadoTemp]) {
     const continuar = confirm(`¡Advertencia! El código "${codigoEscaneadoTemp}" NO se encuentra en la Orden de Compra XML. ¿Deseas agregarlo de todas formas?`);
     if (!continuar) return;
-  } else if (xmlCargadoValido) {
+  } else if (xmlCargadoValido && ordenCompraActual[codigoEscaneadoTemp]) {
     ordenCompraActual[codigoEscaneadoTemp].cantidadEscaneada += cantidad;
   }
 
@@ -233,7 +249,6 @@ async function confirmarEntrada() {
       await updateDoc(prodRef, { codigo: codigoEscaneadoTemp, nombre: nombreProducto, stock: cantidad });
     }
 
-    // Registrar movimiento
     await addDoc(collection(window.db, "movimientos"), {
       tipo: "ENTRADA (XML)",
       codigo: codigoEscaneadoTemp,
@@ -275,7 +290,6 @@ async function confirmarSalida() {
       await updateDoc(prodRef, { stock: stockActual - cantidad });
     }
 
-    // Registrar movimiento de salida
     await addDoc(collection(window.db, "movimientos"), {
       tipo: "SALIDA",
       codigo: codigoEscaneadoTemp,
@@ -292,9 +306,10 @@ async function confirmarSalida() {
   }
 }
 
-// 5. CARGAR INVENTARIO ACTUAL
+// 5. CARGAR INVENTARIO ACTUAL (Stock)
 async function cargarInventarioActual() {
   const contenedor = document.getElementById("lista-inventario");
+  if (!contenedor) return;
   contenedor.innerHTML = "<p>Cargando inventario desde la nube...</p>";
 
   try {
@@ -307,13 +322,27 @@ async function cargarInventarioActual() {
     }
 
     let html = "<ul style='list-style: none; padding: 0;'>";
+    let contadorConStock = 0;
+
     querySnapshot.forEach((doc) => {
       const prod = doc.data();
-      html += `<li style='background: #f9f9f9; margin-bottom: 8px; padding: 10px; border-radius: 4px; border-left: 4px solid #3498db;'>
-        <strong>${prod.nombre}</strong> (${prod.codigo})<br>
-        Stock Actual: <span style='font-size: 1.1em; color: #2c3e50; font-weight: bold;'>${prod.stock || 0}</span>
-      </li>`;
+      const stock = prod.stock || 0;
+
+      // FILTRO: Solo mostrar si el stock es mayor a 0
+      if (stock > 0) {
+        contadorConStock++;
+        html += `<li style='background: #f9f9f9; margin-bottom: 8px; padding: 10px; border-radius: 4px; border-left: 4px solid #3498db;'>
+          <strong>${prod.nombre}</strong> (${prod.codigo})<br>
+          Stock Actual: <span style='font-size: 1.1em; color: #2c3e50; font-weight: bold;'>${stock}</span>
+        </li>`;
+      }
     });
+
+    if (contadorConStock === 0) {
+      contenedor.innerHTML = "<p style='color: #7f8c8d; font-style: italic;'>No hay productos con stock disponible en este momento (todos están en 0).</p>";
+      return;
+    }
+
     html += "</ul>";
     contenedor.innerHTML = html;
   } catch (error) {
@@ -322,9 +351,62 @@ async function cargarInventarioActual() {
   }
 }
 
+// 5.1. CARGAR CATÁLOGO GENERAL Y GENERAR SUS QR
+async function cargarCatalogoGeneralQR() {
+  const contenedor = document.getElementById("lista-catalogo-qr");
+  if (!contenedor) return;
+  contenedor.innerHTML = "<p>Cargando catálogo general...</p>";
+
+  try {
+    const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const querySnapshot = await getDocs(collection(window.db, "productos"));
+
+    if (querySnapshot.empty) {
+      contenedor.innerHTML = "<p style='color: #7f8c8d; font-style: italic;'>No hay productos registrados en el sistema.</p>";
+      return;
+    }
+
+    let html = "<div style='display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px;'>";
+    const productosArray = [];
+    querySnapshot.forEach((docSnap) => {
+      productosArray.push(docSnap.data());
+    });
+
+    productosArray.forEach((prod, index) => {
+      html += `
+        <div style='background: #fff; border: 1px solid #ddd; padding: 12px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
+          <h4 style='margin: 0 0 5px 0; color: #2c3e50;'>${prod.nombre}</h4>
+          <p style='margin: 0 0 10px 0; font-size: 0.9em; color: #7f8c8d;'>SKU: <b>${prod.codigo}</b></p>
+          <div style='display: flex; justify-content: center; margin-bottom: 8px;'>
+            <canvas id='qr-catalogo-${index}'></canvas>
+          </div>
+          <p style='margin: 0; font-size: 0.85em;'>Stock: ${prod.stock || 0}</p>
+        </div>
+      `;
+    });
+
+    html += "</div>";
+    contenedor.innerHTML = html;
+
+    productosArray.forEach((prod, index) => {
+      const canvasElement = document.getElementById(`qr-catalogo-${index}`);
+      if (canvasElement && window.QRCode) {
+        QRCode.toCanvas(canvasElement, prod.codigo, { width: 130 }, function (err) {
+          if (err) console.error("Error generando QR para " + prod.codigo, err);
+        });
+      }
+    });
+
+  } catch (error) {
+    console.error("Error cargando catálogo general:", error);
+    contenedor.innerHTML = "<p style='color: red;'>Error al cargar el catálogo general.</p>";
+  }
+}
+
 // 6. CARGAR HISTORIAL DE MERCANCÍA / MOVIMIENTOS
 async function cargarHistorialMercancia() {
   const contenedor = document.getElementById("lista-mercancia");
+  if (!contenedor) return;
   contenedor.innerHTML = "<p>Cargando historial...</p>";
 
   try {
