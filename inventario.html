@@ -38,14 +38,74 @@
 
   <!-- SECCIÓN 1: Registrar Nuevo -->
   <section id="registrar" class="section-content active admin-only-section">
-    <h2>Alta de Producto Nuevo / Generar QR</h2>
-    <label for="codigo-reg">Código o SKU:</label>
-    <input type="text" id="codigo-reg" placeholder="Ej. HERRAMIENTA-001">
-
-    <label for="nombre-reg">Nombre del Producto:</label>
-    <input type="text" id="nombre-reg" placeholder="Ej. Taladro Percutor">
-
-    <button onclick="guardarNuevoProducto()">Guardar producto y crear QR</button>
+    <h2>Registro de Productos desde Orden de Compra</h2>
+    <p>
+      Carga una orden de compra XML para registrar
+      automáticamente productos nuevos en el catálogo.
+    </p>
+     
+    <label for="file-xml-productos">
+      Orden de compra XML:
+    </label>
+     
+    <input
+      type="file"
+      id="file-xml-productos"
+      accept=".xml">
+     
+    <br><br>
+     
+    <button onclick="procesarXMLProductos()">
+      Analizar XML
+    </button>
+     
+    <div
+      id="resultado-registro-xml"
+      style="margin-top:20px;">
+    </div>
+     
+    <button
+      id="btnRegistrarXML"
+      style="display:none;"
+      onclick="registrarProductosXML()">
+     
+      Registrar Productos Detectados
+     
+    </button>
+     
+    <hr style="margin:25px 0;">
+     
+    <details>
+     
+      <summary>
+        Agregar producto manualmente
+      </summary>
+     
+      <br>
+     
+      <label for="codigo-reg">
+        Código o SKU:
+      </label>
+     
+      <input
+        type="text"
+        id="codigo-reg"
+        placeholder="Ej. HERRAMIENTA-001">
+     
+      <label for="nombre-reg">
+        Nombre del Producto:
+      </label>
+     
+      <input
+        type="text"
+        id="nombre-reg"
+        placeholder="Ej. Taladro Percutor">
+     
+      <button onclick="guardarNuevoProducto()">
+        Guardar Producto Manualmente
+      </button>
+     
+    </details>
   </section>
 
   <!-- SECCIÓN 2: Entradas -->
@@ -58,6 +118,25 @@
       <input type="file" id="file-xml" accept=".xml" onchange="procesarXMLOrdenCompra(event)">
       <div id="resumen-xml" style="margin-top: 10px; font-size: 0.95em;">
         <p style="color: #7f8c8d; font-style: italic;">Ninguna orden cargada aún.</p>
+        <div id="productos-faltantes" style="
+            display:none;
+            margin-top:15px;
+            padding:15px;
+            background:#fff3cd;
+            border:1px solid #ffeaa7;
+            border-radius:5px; ">
+            <h4>Productos no registrados en el catálogo</h4>
+         
+            <div id="lista-faltantes"></div>
+         
+            <button
+                id="btnRegistrarFaltantes"
+                onclick="registrarProductosFaltantes()"
+                style="margin-top:10px;">
+                Registrar productos faltantes
+            </button>
+        </div>
+
       </div>
     </div>
 

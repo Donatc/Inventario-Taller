@@ -5,6 +5,8 @@ let codigoEscaneadoTemp = "";
 // Variables globales para la validación con XML
 let ordenCompraActual = {}; 
 let xmlCargadoValido = false;
+let productosXMLDetectados = [];
+let productosFaltantes = [];
 
 function cambiarSeccion(seccionId, evento) {
   document.querySelectorAll('.section-content').forEach(sec => sec.classList.remove('active'));
@@ -57,7 +59,7 @@ function procesarXMLOrdenCompra(event) {
   if (!archivo) return;
 
   const lector = new FileReader();
-  lector.onload = function(e) {
+  lector.onload = async function(e) {
     try {
       const contenidoTexto = e.target.result;
       const parser = new DOMParser();
@@ -95,6 +97,8 @@ function procesarXMLOrdenCompra(event) {
       
       document.getElementById("contenedor-escanner-entradas").style.display = "block";
       xmlCargadoValido = true;
+
+      await verificarProductosFaltantes();
       
       iniciarCamara('entrada');
       alert("¡Orden de compra cargada con éxito! Ya puedes escanear.");
@@ -105,6 +109,76 @@ function procesarXMLOrdenCompra(event) {
     }
   };
   lector.readAsText(archivo);
+}
+
+async function verificarProductosFaltantes() {
+ 
+  productosFaltantes = [];
+ 
+  const contenedor =
+    document.getElementById("productos-faltantes");
+ 
+  const lista =
+    document.getElementById("lista-faltantes");
+ 
+  lista.innerHTML = "";
+ 
+  try {
+ 
+    const {
+      doc,
+      getDoc
+    } = await import(
+      "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+    );
+ 
+    for (const codigo in ordenCompraActual) {
+ 
+      const ref =
+        doc(window.db, "productos", codigo);
+ 
+      const snap =
+        await getDoc(ref);
+ 
+      if (!snap.exists()) {
+ 
+        productosFaltantes.push({
+          codigo: codigo,
+          nombre:
+            ordenCompraActual[codigo].nombre
+        });
+ 
+      }
+ 
+    }
+ 
+    if (productosFaltantes.length > 0) {
+ 
+      let html = "<ul>";
+ 
+      productosFaltantes.forEach(prod => {
+ 
+        html += `
+        <li>
+          <strong>${prod.codigo}</strong>
+          - ${prod.nombre}
+        </li>`;
+      });
+ 
+      html += "</ul>";
+ 
+      lista.innerHTML = html;
+ 
+      contenedor.style.display = "block";
+ 
+    } else {
+ 
+      contenedor.style.display = "none";
+ 
+    }
+  } catch(error) {
+    console.error(error);
+  }
 }
 
 // 2. GUARDAR NUEVO PRODUCTO EN FIRESTORE (Sin mostrar QR en esta pantalla)
@@ -433,4 +507,268 @@ async function cargarHistorialMercancia() {
     console.error("Error cargando movimientos:", error);
     contenedor.innerHTML = "<p style='color: red;'>Error al cargar el historial.</p>";
   }
+}
+
+async function registrarProductosFaltantes() {
+ 
+  if (productosFaltantes.length === 0) {
+ 
+    alert(
+      "No hay productos faltantes."
+    );
+ 
+    return;
+ 
+  }
+ 
+  try {
+ 
+    const {
+      doc,
+      setDoc
+    } = await import(
+      "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+    );
+ 
+    for (const producto of productosFaltantes) {
+ 
+      await setDoc(
+ 
+        doc(
+          window.db,
+          "productos",
+          producto.codigo
+        ),
+ 
+        {
+          codigo: producto.codigo,
+          nombre: producto.nombre,
+          stock: 0,
+          fechaCreacion:
+            new Date()
+        }
+ 
+      );
+ 
+    }
+ 
+    alert(
+      `${productosFaltantes.length} productos agregados al catálogo`
+    );
+ 
+    document
+      .getElementById(
+        "productos-faltantes"
+      )
+      .style.display = "none";
+ 
+    productosFaltantes = [];
+ 
+  } catch(error) {
+ 
+    console.error(error);
+ 
+    alert(
+      "Error al registrar productos"
+    );
+ 
+  }
+ 
+}
+
+async function procesarXMLProductos() {
+ 
+  const archivo =
+    document.getElementById(
+      "file-xml-productos"
+    ).files[0];
+ 
+  if (!archivo) {
+ 
+    alert(
+      "Selecciona un XML"
+    );
+ 
+    return;
+ 
+  }
+ 
+  const lector =
+    new FileReader();
+ 
+  lector.onload = async function(e) {
+ 
+    try {
+ 
+      const contenido =
+        e.target.result;
+ 
+      const parser =
+        new DOMParser();
+ 
+      const xmlDoc =
+        parser.parseFromString(
+          contenido,
+          "text/xml"
+        );
+ 
+      let items =
+        xmlDoc.getElementsByTagName(
+          "Concepto"
+        );
+ 
+      if (items.length === 0)
+        items =
+        xmlDoc.getElementsByTagName(
+          "Item"
+        );
+ 
+      productosXMLDetectados = [];
+ 
+      const {
+        doc,
+        getDoc
+      } = await import(
+        "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+      );
+ 
+      let html =
+      "<h3>Productos encontrados</h3><ul>";
+ 
+      for (let i = 0; i < items.length; i++) {
+ 
+        const item = items[i];
+ 
+        const codigo =
+          item.getAttribute(
+            "NoIdentificacion"
+          ) ||
+          item.getAttribute(
+            "codigo"
+          );
+ 
+        const nombre =
+          item.getAttribute(
+            "Descripcion"
+          ) ||
+          item.getAttribute(
+            "nombre"
+          );
+ 
+        const ref =
+          doc(
+            window.db,
+            "productos",
+            codigo
+          );
+ 
+        const snap =
+          await getDoc(ref);
+ 
+        if (!snap.exists()) {
+ 
+          productosXMLDetectados.push({
+            codigo,
+            nombre
+          });
+ 
+          html += `
+            <li style="color:green;">
+               NUEVO:
+              <strong>${codigo}</strong>
+              - ${nombre}
+            </li>
+          `;
+ 
+        } else {
+ 
+          html += `
+            <li style="color:#7f8c8d;">
+              ✔ Existe:
+              <strong>${codigo}</strong>
+              - ${nombre}
+            </li>
+          `;
+        }
+      }
+ 
+      html += "</ul>";
+ 
+      document.getElementById(
+        "resultado-registro-xml"
+      ).innerHTML = html;
+ 
+      if (
+        productosXMLDetectados.length > 0
+      ) {
+ 
+        document.getElementById(
+          "btnRegistrarXML"
+        ).style.display =
+        "inline-block";
+ 
+      }
+ 
+    } catch(error) {
+ 
+      console.error(error);
+ 
+      alert(
+        "Error al leer XML"
+      );
+ 
+    }
+ 
+  };
+ 
+  lector.readAsText(archivo);
+ 
+}
+
+async function registrarProductosXML() {
+ 
+  try {
+ 
+    const {
+      doc,
+      setDoc
+    } = await import(
+      "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+    );
+ 
+    let contador = 0;
+ 
+    for (
+      const producto
+      of productosXMLDetectados
+    ) {
+ 
+      await setDoc(
+ 
+        doc(
+          window.db,
+          "productos",
+          producto.codigo
+        ),
+ 
+        {
+          codigo:
+            producto.codigo,
+ 
+          nombre:
+            producto.nombre,
+ 
+          stock: 0,
+ 
+          fechaCreacion:
+            new Date()
+        }
+      );
+      contador++;
+    }
+ 
+    alert( `${contador} productos agregados al catálogo` );
+    productosXMLDetectados = [];
+    document.getElementById("btnRegistrarXML" ).style.display = "none";
+  } catch(error) { console.error(error); alert( "Error al registrar productos" ); }
 }
