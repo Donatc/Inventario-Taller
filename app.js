@@ -697,8 +697,8 @@ if (formUsuario) {
                 alert(
                     "Usuario guardado correctamente."
                 );
- 
                 formUsuario.reset();
+                await cargarUsuarios();
  
             } catch(error) {
  
