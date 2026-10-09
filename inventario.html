@@ -118,25 +118,6 @@
       <input type="file" id="file-xml" accept=".xml" onchange="procesarXMLOrdenCompra(event)">
       <div id="resumen-xml" style="margin-top: 10px; font-size: 0.95em;">
         <p style="color: #7f8c8d; font-style: italic;">Ninguna orden cargada aún.</p>
-        <div id="productos-faltantes" style="
-            display:none;
-            margin-top:15px;
-            padding:15px;
-            background:#fff3cd;
-            border:1px solid #ffeaa7;
-            border-radius:5px; ">
-            <h4>Productos no registrados en el catálogo</h4>
-         
-            <div id="lista-faltantes"></div>
-         
-            <button
-                id="btnRegistrarFaltantes"
-                onclick="registrarProductosFaltantes()"
-                style="margin-top:10px;">
-                Registrar productos faltantes
-            </button>
-        </div>
-
       </div>
     </div>
 
@@ -229,7 +210,7 @@
         
       <input type="email" id="correoUsuario" required>
         
-      <label for="passwordUsuario"> Contraseña temporal: </label>
+      <label for="passwordUsuario"> Contraseña: </label>
         
       <input type="password" id="passwordUsuario" required>
         

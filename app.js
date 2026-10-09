@@ -6,7 +6,6 @@ let codigoEscaneadoTemp = "";
 let ordenCompraActual = {}; 
 let xmlCargadoValido = false;
 let productosXMLDetectados = [];
-let productosFaltantes = [];
 
 function cambiarSeccion(seccionId, evento) {
   document.querySelectorAll('.section-content').forEach(sec => sec.classList.remove('active'));
@@ -26,6 +25,8 @@ function cambiarSeccion(seccionId, evento) {
     cambiarVistaInventario('stock');
   } else if (seccionId === 'mercancia') {
     cargarHistorialMercancia();
+  } else if (seccionId === 'usuarios') {
+    cargarUsuarios();
   }
 }
 
@@ -59,7 +60,7 @@ function procesarXMLOrdenCompra(event) {
   if (!archivo) return;
 
   const lector = new FileReader();
-  lector.onload = async function(e) {
+  lector.onload = function(e) {
     try {
       const contenidoTexto = e.target.result;
       const parser = new DOMParser();
@@ -97,8 +98,6 @@ function procesarXMLOrdenCompra(event) {
       
       document.getElementById("contenedor-escanner-entradas").style.display = "block";
       xmlCargadoValido = true;
-
-      await verificarProductosFaltantes();
       
       iniciarCamara('entrada');
       alert("¡Orden de compra cargada con éxito! Ya puedes escanear.");
@@ -109,76 +108,6 @@ function procesarXMLOrdenCompra(event) {
     }
   };
   lector.readAsText(archivo);
-}
-
-async function verificarProductosFaltantes() {
- 
-  productosFaltantes = [];
- 
-  const contenedor =
-    document.getElementById("productos-faltantes");
- 
-  const lista =
-    document.getElementById("lista-faltantes");
- 
-  lista.innerHTML = "";
- 
-  try {
- 
-    const {
-      doc,
-      getDoc
-    } = await import(
-      "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
-    );
- 
-    for (const codigo in ordenCompraActual) {
- 
-      const ref =
-        doc(window.db, "productos", codigo);
- 
-      const snap =
-        await getDoc(ref);
- 
-      if (!snap.exists()) {
- 
-        productosFaltantes.push({
-          codigo: codigo,
-          nombre:
-            ordenCompraActual[codigo].nombre
-        });
- 
-      }
- 
-    }
- 
-    if (productosFaltantes.length > 0) {
- 
-      let html = "<ul>";
- 
-      productosFaltantes.forEach(prod => {
- 
-        html += `
-        <li>
-          <strong>${prod.codigo}</strong>
-          - ${prod.nombre}
-        </li>`;
-      });
- 
-      html += "</ul>";
- 
-      lista.innerHTML = html;
- 
-      contenedor.style.display = "block";
- 
-    } else {
- 
-      contenedor.style.display = "none";
- 
-    }
-  } catch(error) {
-    console.error(error);
-  }
 }
 
 // 2. GUARDAR NUEVO PRODUCTO EN FIRESTORE (Sin mostrar QR en esta pantalla)
@@ -509,73 +438,6 @@ async function cargarHistorialMercancia() {
   }
 }
 
-async function registrarProductosFaltantes() {
- 
-  if (productosFaltantes.length === 0) {
- 
-    alert(
-      "No hay productos faltantes."
-    );
- 
-    return;
- 
-  }
- 
-  try {
- 
-    const {
-      doc,
-      setDoc
-    } = await import(
-      "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
-    );
- 
-    for (const producto of productosFaltantes) {
- 
-      await setDoc(
- 
-        doc(
-          window.db,
-          "productos",
-          producto.codigo
-        ),
- 
-        {
-          codigo: producto.codigo,
-          nombre: producto.nombre,
-          stock: 0,
-          fechaCreacion:
-            new Date()
-        }
- 
-      );
- 
-    }
- 
-    alert(
-      `${productosFaltantes.length} productos agregados al catálogo`
-    );
- 
-    document
-      .getElementById(
-        "productos-faltantes"
-      )
-      .style.display = "none";
- 
-    productosFaltantes = [];
- 
-  } catch(error) {
- 
-    console.error(error);
- 
-    alert(
-      "Error al registrar productos"
-    );
- 
-  }
- 
-}
-
 async function procesarXMLProductos() {
  
   const archivo =
@@ -771,4 +633,164 @@ async function registrarProductosXML() {
     productosXMLDetectados = [];
     document.getElementById("btnRegistrarXML" ).style.display = "none";
   } catch(error) { console.error(error); alert( "Error al registrar productos" ); }
+}
+
+const formUsuario =
+document.getElementById("formUsuario");
+ 
+if (formUsuario) {
+ 
+    formUsuario.addEventListener(
+        "submit",
+ 
+        async function(event) {
+ 
+            event.preventDefault();
+ 
+            const nombre =
+                document.getElementById(
+                    "nombreUsuario"
+                ).value.trim();
+ 
+            const correo =
+                document.getElementById(
+                    "correoUsuario"
+                ).value.trim();
+ 
+            const password =
+                document.getElementById(
+                    "passwordUsuario"
+                ).value;
+ 
+            const rol =
+                document.getElementById(
+                    "rolUsuario"
+                ).value;
+ 
+            try {
+ 
+                const {
+                    collection,
+                    addDoc
+                } = await import(
+                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+                );
+ 
+                await addDoc(
+ 
+                    collection(
+                        window.db,
+                        "usuariosPendientes"
+                    ),
+ 
+                    {
+                        nombre,
+                        correo,
+                        password,
+                        rol,
+                        fechaCreacion:
+                            new Date()
+                    }
+ 
+                );
+ 
+                alert(
+                    "Usuario guardado correctamente."
+                );
+ 
+                formUsuario.reset();
+ 
+            } catch(error) {
+ 
+                console.error(error);
+ 
+                alert(
+                    "Error al guardar usuario."
+                );
+ 
+            }
+ 
+        }
+ 
+    );
+ 
+}
+
+async function cargarUsuarios() {
+ 
+    const contenedor =
+        document.getElementById(
+            "listaUsuarios"
+        );
+ 
+    if (!contenedor) return;
+ 
+    try {
+ 
+        const {
+            collection,
+            getDocs
+        } = await import(
+            "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+        );
+ 
+        const snapshot =
+            await getDocs(
+                collection(
+                    window.db,
+                    "usuariosPendientes"
+                )
+            );
+ 
+        if (snapshot.empty) {
+ 
+            contenedor.innerHTML =
+                "<p>No hay usuarios registrados.</p>";
+ 
+            return;
+ 
+        }
+ 
+        let html = "";
+ 
+        snapshot.forEach(doc => {
+ 
+            const usuario = doc.data();
+ 
+            html += `
+ 
+                <div style="
+                    background:#f4f4f4;
+                    padding:10px;
+                    margin-bottom:10px;
+                    border-radius:5px;
+                ">
+ 
+                    <strong>
+                        ${usuario.nombre}
+                    </strong>
+ 
+                    <br>
+ 
+                    ${usuario.correo}
+ 
+                    <br>
+ 
+                    Rol:
+                    ${usuario.rol}
+ 
+                </div>
+ 
+            `;
+ 
+        });
+ 
+        contenedor.innerHTML = html;
+ 
+    } catch(error) {
+ 
+        console.error(error);
+ 
+    }
+ 
 }
