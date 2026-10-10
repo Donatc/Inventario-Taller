@@ -237,7 +237,7 @@ async function confirmarEntrada() {
   }
 
   try {
-    const { doc, getDoc, updateDoc, collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const { doc, getDoc, updateDoc, setDoc, collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     
     const prodRef = doc(window.db, "productos", codigoEscaneadoTemp);
     const prodSnap = await getDoc(prodRef);
@@ -249,16 +249,32 @@ async function confirmarEntrada() {
       const stockActual = data.stock || 0;
       await updateDoc(prodRef, { stock: stockActual + cantidad });
     } else {
-      await updateDoc(prodRef, { codigo: codigoEscaneadoTemp, nombre: nombreProducto, stock: cantidad });
+        await setDoc(prodRef, { codigo: codigoEscaneadoTemp, nombre: nombreProducto, stock: cantidad });
     }
 
-    await addDoc(collection(window.db, "movimientos"), {
-      tipo: "ENTRADA (XML)",
-      codigo: codigoEscaneadoTemp,
-      nombre: nombreProducto,
-      cantidad: cantidad,
-      fecha: new Date().toLocaleString()
-    });
+    await addDoc(
+        collection(window.db, "movimientos"),
+        {
+            tipo: "ENTRADA",
+     
+            codigo: codigoEscaneadoTemp,
+     
+            nombre: nombreProducto,
+     
+            cantidad: cantidad,
+     
+            usuario:
+                window.usuarioActual?.nombre ||
+                "Desconocido",
+     
+            rol:
+                window.usuarioActual?.rol ||
+                "N/A",
+     
+            fecha:
+                new Date().toLocaleString()
+        }
+    );
 
     alert(`[Entrada Exitosa] Se agregaron ${cantidad} unidades de "${nombreProducto}" a la nube.`);
     reiniciarEscaneo('entrada');
@@ -298,6 +314,8 @@ async function confirmarSalida() {
       codigo: codigoEscaneadoTemp,
       nombre: nombreProducto,
       cantidad: cantidad,
+      usuario: window.usuarioActual?.nombre || "Desconocido",
+      rol: window.usuarioActual?.rol || "N/A",
       fecha: new Date().toLocaleString()
     });
 
@@ -425,10 +443,14 @@ async function cargarHistorialMercancia() {
     querySnapshot.forEach((doc) => {
       const mov = doc.data();
       const colorBorde = mov.tipo.includes("ENTRADA") ? "#2ecc71" : "#e74c3c";
-      html += `<li style='background: #f9f9f9; margin-bottom: 8px; padding: 10px; border-radius: 4px; border-left: 4px solid ${colorBorde};'>
-        <strong>[${mov.tipo}]</strong> ${mov.nombre} (${mov.codigo})<br>
-        Cantidad: ${mov.cantidad} — <small style='color: gray;'>${mov.fecha}</small>
-      </li>`;
+      html += ` <li style=" background: #f9f9f9; margin-bottom: 8px; padding: 12px; border-radius: 4px; border-left: 
+      4px solid ${colorBorde}; "> <strong>[${mov.tipo}]</strong> <br><br> Producto: <strong>${mov.nombre}</strong> <br> 
+      Código: ${mov.codigo} <br> Cantidad: <strong>${mov.cantidad}</strong> <br> Usuario: <strong>${mov.usuario || "No registrado"}</strong>
+      <br> Rol: ${mov.rol === "admin"
+        ? "Administrador"
+        : mov.rol === "mecanico"
+        ? "Mecánico"
+        : "No registrado"} <br> <small style="color: gray;"> ${mov.fecha} </small> </li> `;
     });
     html += "</ul>";
     contenedor.innerHTML = html;
@@ -675,7 +697,40 @@ if (formUsuario) {
                 } = await import(
                     "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
                 );
- 
+
+                const {
+                    query,
+                    where,
+                    getDocs
+                } = await import(
+                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+                );
+
+                const consulta = query(
+                    collection(
+                        window.db,
+                        "usuariosPendientes"
+                    ),
+                    where(
+                        "correo",
+                        "==",
+                        correo
+                    )
+                );
+                const resultado =
+                    await getDocs(
+                        consulta
+                    );
+                 
+                if (!resultado.empty) {
+                 
+                    alert(
+                        "Ya existe un usuario con ese correo."
+                    );
+                 
+                    return;
+                }
+                
                 await addDoc(
  
                     collection(
@@ -777,7 +832,7 @@ async function cargarUsuarios() {
                     <br>
  
                     Rol:
-                    ${usuario.rol}
+                    ${usuario.rol === "admin" ? "Administrador" : usuario.rol === "mecanico" ? "Mecánico" : usuario.rol}
  
                 </div>
  
