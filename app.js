@@ -691,84 +691,91 @@ if (formUsuario) {
  
             try {
  
-                const {
-                    collection,
-                    addDoc
-                } = await import(
-                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
-                );
-
-                const {
-                    query,
-                    where,
-                    getDocs
-                } = await import(
-                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
-                );
-
-                const consulta = query(
-                    collection(
-                        window.db,
-                        "usuariosPendientes"
-                    ),
-                    where(
-                        "correo",
-                        "==",
-                        correo
-                    )
-                );
-                const resultado =
-                    await getDocs(
-                        consulta
+                    const {
+                        collection,
+                        query,
+                        where,
+                        getDocs,
+                        doc,
+                        setDoc
+                    } = await import(
+                        "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
                     );
                  
-                if (!resultado.empty) {
+                    const consulta = query(
+                        collection(
+                            window.db,
+                            "usuarios"
+                        ),
+                        where(
+                            "correo",
+                            "==",
+                            correo
+                        )
+                    );
+                 
+                    const resultado =
+                        await getDocs(
+                            consulta
+                        );
+                 
+                    if (!resultado.empty) {
+                 
+                        alert(
+                            "Ya existe un usuario con ese correo."
+                        );
+                 
+                        return;
+                    }
+                 
+                    const credencial =
+                        await window.createUserWithEmailAndPassword(
+                 
+                            window.secondaryAuth,
+                            correo,
+                            password
+                 
+                        );
+                 
+                    const uid =
+                        credencial.user.uid;
+                 
+                    await setDoc(
+                 
+                        doc(
+                            window.db,
+                            "usuarios",
+                            uid
+                        ),
+                 
+                        {
+                            nombre,
+                            correo,
+                            rol,
+                            fechaCreacion:
+                                new Date()
+                        }
+                 
+                    );
+                 
+                    await window.secondaryAuth.signOut();
                  
                     alert(
-                        "Ya existe un usuario con ese correo."
+                        "Usuario creado correctamente."
                     );
                  
-                    return;
-                }
-                
-                await addDoc(
- 
-                    collection(
-                        window.db,
-                        "usuariosPendientes"
-                    ),
- 
-                    {
-                        nombre,
-                        correo,
-                        password,
-                        rol,
-                        fechaCreacion:
-                            new Date()
-                    }
- 
-                );
- 
-                alert(
-                    "Usuario guardado correctamente."
-                );
-                formUsuario.reset();
-                await cargarUsuarios();
+                    formUsuario.reset();
+                 
+                    await cargarUsuarios();
  
             } catch(error) {
- 
                 console.error(error);
- 
                 alert(
                     "Error al guardar usuario."
                 );
- 
             }
- 
         }
- 
     );
- 
 }
 
 async function cargarUsuarios() {
@@ -793,7 +800,7 @@ async function cargarUsuarios() {
             await getDocs(
                 collection(
                     window.db,
-                    "usuariosPendientes"
+                    "usuarios"
                 )
             );
  
@@ -820,32 +827,40 @@ async function cargarUsuarios() {
                     margin-bottom:10px;
                     border-radius:5px;
                 ">
- 
                     <strong>
                         ${usuario.nombre}
-                    </strong>
- 
-                    <br>
- 
-                    ${usuario.correo}
- 
-                    <br>
- 
+                    </strong> <br>
+                    ${usuario.correo} <br>
                     Rol:
                     ${usuario.rol === "admin" ? "Administrador" : usuario.rol === "mecanico" ? "Mecánico" : usuario.rol}
  
-                </div>
- 
-            `;
- 
+                </div> `;
         });
- 
         contenedor.innerHTML = html;
- 
     } catch(error) {
- 
         console.error(error);
- 
     }
- 
+}
+
+function aplicarPermisosPorRol(rol) {
+
+    const elementosAdmin =
+        document.querySelectorAll(
+            ".admin-only, .admin-only-section"
+        );
+
+    elementosAdmin.forEach(elemento => {
+
+        if (rol === "admin") {
+
+            elemento.style.display = "";
+
+        } else {
+
+            elemento.style.display = "none";
+
+        }
+
+    });
+
 }

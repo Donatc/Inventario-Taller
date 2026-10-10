@@ -231,3 +231,6 @@ video {
     box-shadow:
         0 8px 20px rgba(37,99,235,0.35);
 }
+.oculto-inicial {
+    visibility: hidden;
+}
