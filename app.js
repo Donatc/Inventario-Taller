@@ -256,13 +256,9 @@ async function confirmarEntrada() {
         collection(window.db, "movimientos"),
         {
             tipo: "ENTRADA",
-     
             codigo: codigoEscaneadoTemp,
-     
             nombre: nombreProducto,
-     
             cantidad: cantidad,
-     
             usuario:
                 window.usuarioActual?.nombre ||
                 "Desconocido",
@@ -272,7 +268,9 @@ async function confirmarEntrada() {
                 "N/A",
      
             fecha:
-                new Date().toLocaleString()
+                new Date().toLocaleString(),
+            
+            timestamp:Date.now()
         }
     );
 
@@ -316,7 +314,8 @@ async function confirmarSalida() {
       cantidad: cantidad,
       usuario: window.usuarioActual?.nombre || "Desconocido",
       rol: window.usuarioActual?.rol || "N/A",
-      fecha: new Date().toLocaleString()
+      fecha: new Date().toLocaleString(),
+      timestamp: Date.now()
     });
 
     alert(`[Salida Registrada] Se retiraron ${cantidad} unidades de "${nombreProducto}".`);
@@ -425,6 +424,84 @@ async function cargarCatalogoGeneralQR() {
 }
 
 // 6. CARGAR HISTORIAL DE MERCANCÍA / MOVIMIENTOS
+function obtenerSemana(fecha) {
+
+    const date = new Date(fecha);
+
+    const primerDiaAnio =
+        new Date(
+            date.getFullYear(),
+            0,
+            1
+        );
+
+    const dias =
+        Math.floor(
+            (date - primerDiaAnio) /
+            86400000
+        );
+
+    const semana =
+        Math.ceil(
+            (dias +
+            primerDiaAnio.getDay() +
+            1) / 7
+        );
+
+    return {
+        anio:
+            date.getFullYear(),
+
+        semana:
+            semana
+    };
+
+}
+function obtenerRangoSemana(timestamp) {
+
+    const fecha = new Date(timestamp);
+
+    const dia =
+        fecha.getDay();
+
+    const diferenciaInicio =
+        dia === 0 ? -6 : 1 - dia;
+
+    const inicioSemana =
+        new Date(fecha);
+
+    inicioSemana.setDate(
+        fecha.getDate() +
+        diferenciaInicio
+    );
+
+    const finSemana =
+        new Date(inicioSemana);
+
+    finSemana.setDate(
+        inicioSemana.getDate() + 6
+    );
+
+    const opciones = {
+        day: "2-digit",
+        month: "short"
+    };
+
+    const inicio =
+        inicioSemana.toLocaleDateString(
+            "es-MX",
+            opciones
+        );
+
+    const fin =
+        finSemana.toLocaleDateString(
+            "es-MX",
+            opciones
+        );
+
+    return `Semana del ${inicio} al ${fin}`;
+}
+
 async function cargarHistorialMercancia() {
   const contenedor = document.getElementById("lista-mercancia");
   if (!contenedor) return;
@@ -439,20 +516,148 @@ async function cargarHistorialMercancia() {
       return;
     }
 
-    let html = "<ul style='list-style: none; padding: 0;'>";
-    querySnapshot.forEach((doc) => {
-      const mov = doc.data();
-      const colorBorde = mov.tipo.includes("ENTRADA") ? "#2ecc71" : "#e74c3c";
-      html += ` <li style=" background: #f9f9f9; margin-bottom: 8px; padding: 12px; border-radius: 4px; border-left: 
-      4px solid ${colorBorde}; "> <strong>[${mov.tipo}]</strong> <br><br> Producto: <strong>${mov.nombre}</strong> <br> 
-      Código: ${mov.codigo} <br> Cantidad: <strong>${mov.cantidad}</strong> <br> Usuario: <strong>${mov.usuario || "No registrado"}</strong>
-      <br> Rol: ${mov.rol === "admin"
-        ? "Administrador"
-        : mov.rol === "mecanico"
-        ? "Mecánico"
-        : "No registrado"} <br> <small style="color: gray;"> ${mov.fecha} </small> </li> `;
+    const movimientosPorSemana = {};
+    querySnapshot.forEach((docSnap) => {
+
+        const mov = docSnap.data();
+
+        const infoSemana =
+            obtenerSemana(
+                mov.timestamp
+            );
+
+        const clave =
+
+            `${infoSemana.anio}-S${infoSemana.semana}`;
+
+        if (!movimientosPorSemana[clave]) {
+
+            movimientosPorSemana[clave] = [];
+
+        }
+
+        movimientosPorSemana[clave].push(
+            mov
+        );
+
     });
-    html += "</ul>";
+
+    let html = "";
+    Object.keys(movimientosPorSemana)
+    .sort()
+    .reverse()
+    .forEach(semana => {
+     
+        const rangoSemana =
+            obtenerRangoSemana(
+                movimientosPorSemana[semana][0]
+                .timestamp
+            );
+         
+        html += `
+         
+        <details
+            style="
+                margin-bottom:15px;
+                background:#fff;
+                border:1px solid #ddd;
+                border-radius:6px;
+                padding:10px;
+            ">
+         
+            <summary
+                style="
+                    cursor:pointer;
+                    font-weight:bold;
+                    color:#2c3e50;
+                ">
+         
+                ${rangoSemana}
+         
+                (${movimientosPorSemana[semana].length}
+                movimientos)
+         
+            </summary>
+         
+        `;
+     
+        movimientosPorSemana[semana]
+     
+        .forEach(mov => {
+     
+            const colorBorde =
+                mov.tipo.includes(
+                    "ENTRADA"
+                )
+                ? "#2ecc71"
+                : "#e74c3c";
+     
+            html += `
+     
+            <div
+                style="
+                    background:#f9f9f9;
+                    margin-top:10px;
+                    padding:12px;
+                    border-left:4px solid ${colorBorde};
+                    border-radius:4px;
+                ">
+     
+                <strong>
+                    [${mov.tipo}]
+                </strong>
+     
+                <br><br>
+     
+                Producto:
+                <strong>
+                    ${mov.nombre}
+                </strong>
+     
+                <br>
+     
+                Código:
+                ${mov.codigo}
+     
+                <br>
+     
+                Cantidad:
+                <strong>
+                    ${mov.cantidad}
+                </strong>
+     
+                <br>
+     
+                Usuario:
+                <strong>
+                    ${mov.usuario}
+                </strong>
+     
+                <br>
+     
+                Rol:
+                ${
+                    mov.rol === "admin"
+                    ? "Administrador"
+                    : "Mecánico"
+                }
+     
+                <br>
+     
+                <small>
+                    ${mov.fecha}
+                </small>
+     
+            </div>
+     
+            `;
+     
+        });
+     
+        html += "</details>";
+     
+    });
+
     contenedor.innerHTML = html;
   } catch (error) {
     console.error("Error cargando movimientos:", error);
