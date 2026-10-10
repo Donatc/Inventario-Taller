@@ -27,7 +27,7 @@
   </header>
 
   <!-- Menú de Pestañas -->
-  <nav class="nav-tabs">
+  <nav id="contenidoPrincipal" class="nav-tabs oculto-inicial">
     <button class="nav-tab active admin-only" onclick="cambiarSeccion('registrar', event)">Registrar Nuevo</button>
     <button class="nav-tab" onclick="cambiarSeccion('entradas', event)">Entradas</button>
     <button class="nav-tab" onclick="cambiarSeccion('salidas', event)">Salidas</button>
@@ -35,7 +35,7 @@
     <button class="nav-tab" onclick="cambiarSeccion('actual', event)">Inventario</button>
     <button class="nav-tab admin-only" onclick="cambiarSeccion('usuarios', event)"> Usuarios </button>
   </nav>
-
+<div id="contenidoSecciones" class="oculto-inicial">
   <!-- SECCIÓN 1: Registrar Nuevo -->
   <section id="registrar" class="section-content active admin-only-section">
     <h2>Registro de Productos desde Orden de Compra</h2>
@@ -244,6 +244,7 @@
     </div>
    
   </section>
+</div>
 
   <!-- Inicialización de Firebase con tus credenciales reales -->
   <script type="module">
@@ -320,6 +321,8 @@
        
           window.usuarioActual = usuarioSnap.data();
           aplicarPermisosPorRol(window.usuarioActual.rol);
+          document.getElementById("contenidoPrincipal").classList.remove("oculto-inicial");
+          document.getElementById("contenidoSecciones").classList.remove("oculto-inicial");
           console.log( "Usuario actual:", window.usuarioActual );
           const nombreRol = { admin: "Administrador", mecanico: "Mecánico" }; 
           document.getElementById( "infoUsuario" ).textContent = `${window.usuarioActual.nombre} 
@@ -328,7 +331,7 @@
               document
                   .querySelectorAll(".section-content")
                   .forEach(sec =>
-                      sec.classList.remove("active")
+                      sec.classList.remove("oculto-inicial")
                   );
 
               document
