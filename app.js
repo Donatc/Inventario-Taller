@@ -109,6 +109,7 @@ function procesarXMLOrdenCompra(event) {
       document.getElementById("contenedor-escanner-entradas").style.display = "block";
       xmlCargadoValido = true;
       actualizarListaFisica();
+      document.getElementById( "btnFinalizarRecepcion" ).style.display = "inline-block";
       iniciarCamara('entrada');
       alert("¡Orden de compra cargada con éxito! Ya puedes escanear.");
 
@@ -198,6 +199,118 @@ function actualizarListaFisica() {
 
     contenedor.innerHTML =
         html;
+}
+function finalizarRecepcion() {
+
+    const completos = [];
+
+    const parciales = [];
+
+    const noRecibidos = [];
+
+    const sobrantes = [];
+
+    Object.values(
+        productosFisicos
+    ).forEach(prod => {
+
+        if (
+            prod.recibidos ===
+            prod.esperados
+        ) {
+
+            completos.push(prod);
+
+        }
+
+        else if (
+            prod.recibidos === 0
+        ) {
+
+            noRecibidos.push(prod);
+
+        }
+
+        else if (
+            prod.recibidos >
+            prod.esperados
+        ) {
+
+            sobrantes.push(prod);
+
+        }
+
+        else {
+
+            parciales.push(prod);
+
+        }
+
+    });
+
+    let mensaje =
+
+`RESUMEN DE RECEPCIÓN
+
+
+✅ COMPLETOS
+
+`;
+
+    completos.forEach(prod => {
+
+        mensaje +=
+`${prod.codigo} ${prod.nombre} ${prod.recibidos}/${prod.esperados}
+`;
+    });
+
+    mensaje +=
+
+`\n⚠ PARCIALES\n\n`;
+
+    parciales.forEach(prod => {
+
+        mensaje +=
+`${prod.codigo} ${prod.nombre} ${prod.recibidos}/${prod.esperados}
+`;
+    });
+
+    mensaje +=
+
+`\n❌ NO RECIBIDOS\n\n`;
+
+    noRecibidos.forEach(prod => {
+
+        mensaje +=
+`${prod.codigo} ${prod.nombre} ${prod.recibidos}/${prod.esperados}
+`;
+    });
+
+    mensaje +=
+
+`\n🔵 SOBRANTES\n\n`;
+
+    sobrantes.forEach(prod => {
+
+        mensaje +=
+`${prod.codigo} ${prod.nombre} ${prod.recibidos}/${prod.esperados}
+`;
+    });
+
+    mensaje +=
+
+`\n\n¿Deseas registrar esta recepción?`;
+
+    const confirmar =
+
+        confirm(mensaje);
+
+    if (confirmar) {
+
+        registrarRecepcionCompleta();
+
+    }
+
 }
 
 // 2. GUARDAR NUEVO PRODUCTO EN FIRESTORE (Sin mostrar QR en esta pantalla)
@@ -320,8 +433,10 @@ async function confirmarEntrada() {
   if (!cantidad || cantidad <= 0) return alert("Ingresa una cantidad válida.");
 
   if (xmlCargadoValido && !ordenCompraActual[codigoEscaneadoTemp]) {
-    const continuar = confirm(`¡Advertencia! El código "${codigoEscaneadoTemp}" NO se encuentra en la Orden de Compra XML. ¿Deseas agregarlo de todas formas?`);
-    if (!continuar) return;
+        alert( `El producto "${codigoEscaneadoTemp}" no pertenece a la Orden de Compra y no puede registrarse.` );
+     
+        reiniciarEscaneo('entrada');     
+        return;
   } else if (xmlCargadoValido && ordenCompraActual[codigoEscaneadoTemp]) {
     ordenCompraActual[codigoEscaneadoTemp].cantidadEscaneada += cantidad;
   }
