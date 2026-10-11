@@ -3,7 +3,8 @@ let modoActualEscanner = null;
 let codigoEscaneadoTemp = "";
 
 // Variables globales para la validación con XML
-let ordenCompraActual = {}; 
+let ordenCompraActual = {};
+let productosFisicos = {};
 let xmlCargadoValido = false;
 let productosXMLDetectados = [];
 
@@ -71,6 +72,7 @@ function procesarXMLOrdenCompra(event) {
       if (items.length === 0) items = xmlDoc.getElementsByTagName("producto");
 
       ordenCompraActual = {};
+      productosFisicos = {};
       let htmlResumen = "<strong>Productos en la Orden:</strong><ul style='margin: 5px 0 0 20px; padding:0;'>";
 
       if (items.length > 0) {
@@ -85,6 +87,14 @@ function procesarXMLOrdenCompra(event) {
             cantidadEsperada: cantidad,
             cantidadEscaneada: 0
           };
+          productosFisicos[codigo] = {
+
+              codigo: codigo,
+              nombre: descripcion,
+              esperados: cantidad,
+              recibidos: 0
+
+          };
 
           htmlResumen += `<li><b>${codigo}</b> - ${descripcion} (Esperados: <b>${cantidad}</b>)</li>`;
         }
@@ -98,7 +108,7 @@ function procesarXMLOrdenCompra(event) {
       
       document.getElementById("contenedor-escanner-entradas").style.display = "block";
       xmlCargadoValido = true;
-      
+      actualizarListaFisica();
       iniciarCamara('entrada');
       alert("¡Orden de compra cargada con éxito! Ya puedes escanear.");
 
@@ -108,6 +118,86 @@ function procesarXMLOrdenCompra(event) {
     }
   };
   lector.readAsText(archivo);
+}
+function actualizarListaFisica() {
+
+    const contenedor =
+        document.getElementById(
+            "lista-productos-fisicos"
+        );
+
+    let html = `
+        <table
+        style="
+            width:100%;
+            border-collapse:collapse;
+        ">
+    `;
+
+    html += `
+        <tr>
+            <th>SKU</th>
+            <th>Producto</th>
+            <th>Recibidos</th>
+        </tr>
+    `;
+
+    Object.values(
+        productosFisicos
+    ).forEach(prod => {
+
+        let color = "#e74c3c";
+
+        if (
+            prod.recibidos > 0
+        ) {
+
+            color = "#f39c12";
+
+        }
+
+        if (
+            prod.recibidos >=
+            prod.esperados
+        ) {
+
+            color = "#2ecc71";
+
+        }
+
+        html += `
+
+        <tr>
+
+            <td>
+                ${prod.codigo}
+            </td>
+
+            <td>
+                ${prod.nombre}
+            </td>
+
+            <td
+                style="
+                    color:${color};
+                    font-weight:bold;
+                ">
+
+                ${prod.recibidos}
+                /
+                ${prod.esperados}
+
+            </td>
+
+        </tr>
+
+        `;
+    });
+
+    html += "</table>";
+
+    contenedor.innerHTML =
+        html;
 }
 
 // 2. GUARDAR NUEVO PRODUCTO EN FIRESTORE (Sin mostrar QR en esta pantalla)
@@ -235,6 +325,18 @@ async function confirmarEntrada() {
   } else if (xmlCargadoValido && ordenCompraActual[codigoEscaneadoTemp]) {
     ordenCompraActual[codigoEscaneadoTemp].cantidadEscaneada += cantidad;
   }
+  if (
+      productosFisicos[
+          codigoEscaneadoTemp
+      ]
+  ) {
+   
+      productosFisicos[
+          codigoEscaneadoTemp
+      ].recibidos += cantidad;
+   
+      actualizarListaFisica();
+  }
 
   try {
     const { doc, getDoc, updateDoc, setDoc, collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
@@ -243,6 +345,7 @@ async function confirmarEntrada() {
     const prodSnap = await getDoc(prodRef);
 
     let nombreProducto = ordenCompraActual[codigoEscaneadoTemp]?.nombre || codigoEscaneadoTemp;
+    
     if (prodSnap.exists()) {
       const data = prodSnap.data();
       nombreProducto = data.nombre || nombreProducto;
@@ -580,7 +683,7 @@ async function cargarHistorialMercancia() {
             </summary>
          
         `;
-     
+        movimientosPorSemana[semana].sort( (a, b) => b.timestamp - a.timestamp );
         movimientosPorSemana[semana]
      
         .forEach(mov => {
