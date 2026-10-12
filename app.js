@@ -7,6 +7,9 @@ let ordenCompraActual = {};
 let productosFisicos = {};
 let xmlCargadoValido = false;
 let productosXMLDetectados = [];
+let proveedorActual = "";
+let folioActual = "";
+let fechaFacturaActual = "";
 
 function cambiarSeccion(seccionId, evento) {
   document.querySelectorAll('.section-content').forEach(sec => sec.classList.remove('active'));
@@ -66,8 +69,20 @@ function procesarXMLOrdenCompra(event) {
       const contenidoTexto = e.target.result;
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(contenidoTexto, "text/xml");
+      const emisores = xmlDoc.getElementsByTagName( "cfdi:Emisor" );
+      if (emisores.length > 0) {
+          proveedorActual =emisores[0].getAttribute( "Nombre" ) || "";
+      }
 
-      let items = xmlDoc.getElementsByTagName("Concepto");
+      const comprobante = xmlDoc.getElementsByTagName("cfdi:Comprobante")[0];
+
+      if (comprobante) {
+          folioActual = comprobante.getAttribute( "Folio" ) || "";
+          fechaFacturaActual = comprobante.getAttribute( "Fecha" ) || "";
+      }
+
+      let items = xmlDoc.getElementsByTagName("cfdi:Concepto");
+      if (items.length === 0) items = xmlDoc.getElementsByTagName("Concepto");
       if (items.length === 0) items = xmlDoc.getElementsByTagName("Item");
       if (items.length === 0) items = xmlDoc.getElementsByTagName("producto");
 
@@ -104,8 +119,10 @@ function procesarXMLOrdenCompra(event) {
       }
 
       htmlResumen += "</ul>";
-      document.getElementById("resumen-xml").innerHTML = htmlResumen;
+      htmlResumen += ` <hr> <p> <b>Proveedor:</b> ${proveedorActual} </p> <p> <b>Folio:</b> ${folioActual}
+      </p> <p> <b>Fecha Factura:</b> ${fechaFacturaActual} </p> `;
       
+      document.getElementById("resumen-xml").innerHTML = htmlResumen;
       document.getElementById("contenedor-escanner-entradas").style.display = "block";
       xmlCargadoValido = true;
       actualizarListaFisica();
@@ -484,7 +501,14 @@ async function registrarRecepcionCompleta() {
             ),
 
             {
+                proveedor:
+                    proveedorActual,
 
+                folio:
+                    folioActual,
+
+                fechaFactura:
+                    fechaFacturaActual,
                 fecha:
                     new Date()
                     .toLocaleString(),
@@ -1095,34 +1119,21 @@ async function procesarXMLProductos() {
           contenido,
           "text/xml"
         );
+        
  
-      let items =
-        xmlDoc.getElementsByTagName(
-          "Concepto"
-        );
- 
-      if (items.length === 0)
-        items =
-        xmlDoc.getElementsByTagName(
-          "Item"
-        );
- 
+      let items = xmlDoc.getElementsByTagName( "cfdi:Concepto" );
+      if (items.length === 0) items = xmlDoc.getElementsByTagName( "Concepto" ); 
+      if (items.length === 0) items = xmlDoc.getElementsByTagName( "Item" );
+      if (items.length === 0) items = xmlDoc.getElementsByTagName( "producto" );
       productosXMLDetectados = [];
+      console.log( "Productos encontrados:", items );
  
-      const {
-        doc,
-        getDoc
-      } = await import(
-        "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
-      );
- 
-      let html =
-      "<h3>Productos encontrados</h3><ul>";
- 
+      const { doc, getDoc } = await import( "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      let html ="<h3>Productos encontrados</h3><ul>";
+      
       for (let i = 0; i < items.length; i++) {
  
         const item = items[i];
- 
         const codigo =
           item.getAttribute(
             "NoIdentificacion"
