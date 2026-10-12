@@ -201,13 +201,9 @@ function actualizarListaFisica() {
         html;
 }
 function finalizarRecepcion() {
-
     const completos = [];
-
     const parciales = [];
-
     const noRecibidos = [];
-
     const sobrantes = [];
 
     Object.values(
@@ -311,6 +307,223 @@ function finalizarRecepcion() {
 
     }
 
+}
+
+async function registrarRecepcionCompleta() {
+
+    try {
+
+        const {
+            doc,
+            getDoc,
+            setDoc,
+            updateDoc,
+            collection,
+            addDoc
+        } = await import(
+            "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+        );
+
+        let completos = 0;
+        let parciales = 0;
+        let noRecibidos = 0;
+        let sobrantes = 0;
+
+        const detalleProductos = [];
+
+        for (const producto of Object.values(productosFisicos)) {
+
+            const recibidos = producto.recibidos;
+            const esperados = producto.esperados;
+
+            let estado = "";
+
+            if (recibidos === esperados) {
+
+                estado = "COMPLETO";
+                completos++;
+
+            } else if (recibidos === 0) {
+
+                estado = "NO RECIBIDO";
+                noRecibidos++;
+
+            } else if (recibidos > esperados) {
+
+                estado = "SOBRANTE";
+                sobrantes++;
+
+            } else {
+
+                estado = "PARCIAL";
+                parciales++;
+
+            }
+
+            detalleProductos.push({
+
+                codigo: producto.codigo,
+
+                nombre: producto.nombre,
+
+                esperados: esperados,
+
+                recibidos: recibidos,
+
+                estado: estado
+
+            });
+
+            // Solo actualiza inventario
+            // si realmente llegaron piezas
+
+            if (recibidos > 0) {
+
+                const prodRef = doc(
+                    window.db,
+                    "productos",
+                    producto.codigo
+                );
+
+                const prodSnap =
+                    await getDoc(prodRef);
+
+                if (prodSnap.exists()) {
+
+                    const stockActual =
+                        prodSnap.data().stock || 0;
+
+                    await updateDoc(
+                        prodRef,
+                        {
+                            stock:
+                                stockActual +
+                                recibidos
+                        }
+                    );
+
+                } else {
+
+                    await setDoc(
+                        prodRef,
+                        {
+                            codigo:
+                                producto.codigo,
+
+                            nombre:
+                                producto.nombre,
+
+                            stock:
+                                recibidos
+                        }
+                    );
+
+                }
+
+                await addDoc(
+
+                    collection(
+                        window.db,
+                        "movimientos"
+                    ),
+
+                    {
+
+                        tipo: "ENTRADA",
+
+                        codigo:
+                            producto.codigo,
+
+                        nombre:
+                            producto.nombre,
+
+                        cantidad:
+                            recibidos,
+
+                        usuario:
+                            window.usuarioActual?.nombre ||
+                            "Desconocido",
+
+                        rol:
+                            window.usuarioActual?.rol ||
+                            "N/A",
+
+                        fecha:
+                            new Date()
+                            .toLocaleString(),
+
+                        timestamp:
+                            Date.now()
+
+                    }
+
+                );
+
+            }
+
+        }
+
+        const totalProductos =
+            detalleProductos.length;
+
+        const cumplimiento =
+            totalProductos > 0
+            ? (
+                (completos /
+                totalProductos) * 100
+            ).toFixed(2)
+            : 0;
+
+        // REPORTE DE RECEPCIÓN
+
+        await addDoc(
+
+            collection(
+                window.db,
+                "recepciones"
+            ),
+
+            {
+
+                fecha:
+                    new Date()
+                    .toLocaleString(),
+
+                timestamp:
+                    Date.now(),
+
+                usuario:
+                    window.usuarioActual?.nombre,
+
+                totalProductos,
+                completos,
+                parciales,
+                noRecibidos,
+                sobrantes,
+                cumplimiento,
+
+                productos:
+                    detalleProductos
+            }
+        );
+        alert( "Recepción registrada correctamente." );
+            
+        // Limpiar pantalla
+        productosFisicos = {};
+        ordenCompraActual = {};
+        xmlCargadoValido = false;
+
+        document.getElementById( "lista-productos-fisicos" ).innerHTML = "<p>Recepción terminada.</p>";
+        document.getElementById( "resumen-xml" ).innerHTML = "<p style='color:#7f8c8d;'>Ninguna orden cargada aún.</p>";
+        document.getElementById( "contenedor-escanner-entradas" ).style.display = "none";
+        document.getElementById( "btnFinalizarRecepcion" ).style.display = "none";
+        detenerCamara();
+
+    } catch(error) {
+        console.error(error);
+        alert(
+            "Error al registrar la recepción."
+        ); }
 }
 
 // 2. GUARDAR NUEVO PRODUCTO EN FIRESTORE (Sin mostrar QR en esta pantalla)
@@ -453,51 +666,15 @@ async function confirmarEntrada() {
       actualizarListaFisica();
   }
 
-  try {
-    const { doc, getDoc, updateDoc, setDoc, collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    
-    const prodRef = doc(window.db, "productos", codigoEscaneadoTemp);
-    const prodSnap = await getDoc(prodRef);
+  const nombreProducto =
+      ordenCompraActual[codigoEscaneadoTemp]?.nombre ||
+      codigoEscaneadoTemp;
 
-    let nombreProducto = ordenCompraActual[codigoEscaneadoTemp]?.nombre || codigoEscaneadoTemp;
-    
-    if (prodSnap.exists()) {
-      const data = prodSnap.data();
-      nombreProducto = data.nombre || nombreProducto;
-      const stockActual = data.stock || 0;
-      await updateDoc(prodRef, { stock: stockActual + cantidad });
-    } else {
-        await setDoc(prodRef, { codigo: codigoEscaneadoTemp, nombre: nombreProducto, stock: cantidad });
-    }
+  alert(
+      `Se registraron físicamente ${cantidad} unidades de "${nombreProducto}".`
+  );
 
-    await addDoc(
-        collection(window.db, "movimientos"),
-        {
-            tipo: "ENTRADA",
-            codigo: codigoEscaneadoTemp,
-            nombre: nombreProducto,
-            cantidad: cantidad,
-            usuario:
-                window.usuarioActual?.nombre ||
-                "Desconocido",
-     
-            rol:
-                window.usuarioActual?.rol ||
-                "N/A",
-     
-            fecha:
-                new Date().toLocaleString(),
-            
-            timestamp:Date.now()
-        }
-    );
-
-    alert(`[Entrada Exitosa] Se agregaron ${cantidad} unidades de "${nombreProducto}" a la nube.`);
-    reiniciarEscaneo('entrada');
-  } catch (error) {
-    console.error("Error al registrar entrada:", error);
-    alert("Error al conectar con la base de datos.");
-  }
+  reiniciarEscaneo('entrada');
 }
 
 // 4. CONFIRMAR SALIDA EN LA NUBE
