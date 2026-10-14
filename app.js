@@ -59,12 +59,12 @@ function cambiarVistaInventario(vista) {
 }
 
 // 1. PROCESAR EL ARCHIVO XML DE LA ORDEN DE COMPRA
-function procesarXMLOrdenCompra(event) {
+async function procesarXMLOrdenCompra(event) {
   const archivo = event.target.files[0];
   if (!archivo) return;
 
   const lector = new FileReader();
-  lector.onload = function(e) {
+  lector.onload = async function(e) {
     try {
       const contenidoTexto = e.target.result;
       const parser = new DOMParser();
@@ -88,9 +88,16 @@ function procesarXMLOrdenCompra(event) {
 
       ordenCompraActual = {};
       productosFisicos = {};
+      const productosNoRegistrados = [];
       let htmlResumen = "<strong>Productos en la Orden:</strong><ul style='margin: 5px 0 0 20px; padding:0;'>";
 
       if (items.length > 0) {
+        const {
+              doc,
+              getDoc
+          } = await import(
+              "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+          );
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
           const codigo = item.getAttribute("NoIdentificacion") || item.getAttribute("codigo") || `SKU-${i+1}`;
@@ -110,13 +117,57 @@ function procesarXMLOrdenCompra(event) {
               recibidos: 0
 
           };
+           
+          const productoRef =
+              doc(
+                  window.db,
+                  "productos",
+                  codigo
+              );
+           
+          const productoSnap =
+              await getDoc(
+                  productoRef
+              );
+           
+          if (!productoSnap.exists()) {
+           
+              productosNoRegistrados.push(
+                  `${codigo} - ${descripcion}`
+              );
+           
+          }
 
           htmlResumen += `<li><b>${codigo}</b> - ${descripcion} (Esperados: <b>${cantidad}</b>)</li>`;
         }
+        if (
+          productosNoRegistrados.length > 0
+      ) {
+       
+          alert(`Se detectaron productos que no existen en el catálogo:
+       
+      
+       
+      ${productosNoRegistrados.join("\n")}
+       
+      Favor de comunicarse con el administrador para validar los productos antes de continuar.` );
+       
+          ordenCompraActual = {};
+          productosFisicos = {};
+          xmlCargadoValido = false;
+          document.getElementById( "resumen-xml" ).innerHTML = "<p style='color:#7f8c8d;'>Ninguna orden cargada aún.</p>";
+          document.getElementById( "contenedor-escanner-entradas" ).style.display = "none"; 
+          document.getElementById( "btnFinalizarRecepcion" ).style.display = "none"; 
+          detenerCamara();
+
+       return;
+      }
+
       } else {
         alert("No se detectaron nodos de productos estándar (Concepto/Item) en el XML.");
         return;
       }
+      
 
       htmlResumen += "</ul>";
       htmlResumen += ` <hr> <p> <b>Proveedor:</b> ${proveedorActual} </p> <p> <b>Folio:</b> ${folioActual}
@@ -127,6 +178,7 @@ function procesarXMLOrdenCompra(event) {
       xmlCargadoValido = true;
       actualizarListaFisica();
       document.getElementById( "btnFinalizarRecepcion" ).style.display = "inline-block";
+      
       iniciarCamara('entrada');
       alert("¡Orden de compra cargada con éxito! Ya puedes escanear.");
 
@@ -669,11 +721,10 @@ async function confirmarEntrada() {
   const cantidad = parseInt(document.getElementById("cantidad-entrada").value);
   if (!cantidad || cantidad <= 0) return alert("Ingresa una cantidad válida.");
 
-  if (xmlCargadoValido && !ordenCompraActual[codigoEscaneadoTemp]) {
-        alert( `El producto "${codigoEscaneadoTemp}" no pertenece a la Orden de Compra y no puede registrarse.` );
-     
-        reiniciarEscaneo('entrada');     
-        return;
+  if (xmlCargadoValido && !ordenCompraActual[codigoEscaneadoTemp] ) 
+    { alert( `El producto "${codigoEscaneadoTemp}" no pertenece a la Orden de Compra.` );
+      reiniciarEscaneo('entrada'); return;
+      
   } else if (xmlCargadoValido && ordenCompraActual[codigoEscaneadoTemp]) {
     ordenCompraActual[codigoEscaneadoTemp].cantidadEscaneada += cantidad;
   }
@@ -1264,7 +1315,9 @@ async function registrarProductosXML() {
  
     alert( `${contador} productos agregados al catálogo` );
     productosXMLDetectados = [];
-    document.getElementById("btnRegistrarXML" ).style.display = "none";
+    document.getElementById( "resultado-registro-xml" ).innerHTML = "<p>Registro completado correctamente.</p>";
+    document.getElementById( "file-xml-productos" ).value = "";
+    document.getElementById( "btnRegistrarXML" ).style.display = "none";
   } catch(error) { console.error(error); alert( "Error al registrar productos" ); }
 }
 
