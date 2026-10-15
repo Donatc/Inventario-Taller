@@ -1531,6 +1531,17 @@ function aplicarPermisosPorRol(rol) {
 }
 function mostrarHistorial() {
 
+    const seccion =
+        document.getElementById(
+            "mercancia"
+        );
+     
+    if (seccion) {
+     
+        seccion.style.maxWidth =
+            "900px";
+     
+    }
     document.getElementById(
         "lista-mercancia"
     ).style.display =
@@ -1550,6 +1561,21 @@ function mostrarHistorial() {
 
 function mostrarProveedores() {
 
+
+    const seccion =
+        document.getElementById(
+            "mercancia"
+        );
+     
+    if (seccion) {
+     
+        seccion.dataset.anchoOriginal =
+            seccion.style.maxWidth;
+     
+        seccion.style.maxWidth =
+            "1300px";
+     
+    }
     document.getElementById(
         "lista-mercancia"
     ).style.display =

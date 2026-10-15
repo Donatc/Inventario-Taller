@@ -75,11 +75,9 @@ async function cargarReporteProveedores() {
 
         });
 
-        let html = "";
+        const ranking = [];
 
-        Object.keys(
-            proveedores
-        ).forEach(nombre => {
+        Object.keys(proveedores).forEach(nombre => {
 
             const proveedor =
                 proveedores[nombre];
@@ -90,72 +88,233 @@ async function cargarReporteProveedores() {
                     proveedor.recepciones
                 ).toFixed(2);
 
-            let estado = "";
-            let color = "";
+            ranking.push({
 
-            if (promedio >= 90) {
+                nombre,
 
-                estado = "Alta";
-                color = "#2ecc71";
+                recepciones:
+                    proveedor.recepciones,
 
-            } else if (
-                promedio >= 75
-            ) {
+                promedio:
+                    parseFloat(promedio)
 
-                estado = "Media";
-                color = "#f39c12";
-
-            } else {
-
-                estado = "Baja";
-                color = "#e74c3c";
-
-            }
-
-            html += `
-
-            <div
-                style="
-                    background:#f9f9f9;
-                    padding:15px;
-                    margin-bottom:15px;
-                    border-left:5px solid ${color};
-                    border-radius:5px;
-                ">
-
-                <h3>
-                    ${nombre}
-                </h3>
-
-                <p>
-                    Recepciones:
-                    <strong>
-                        ${proveedor.recepciones}
-                    </strong>
-                </p>
-
-                <p>
-                    Cumplimiento promedio:
-                    <strong>
-                        ${promedio}%
-                    </strong>
-                </p>
-
-                <p>
-                    Confiabilidad:
-                    <strong>
-                        ${estado}
-                    </strong>
-                </p>
-
-            </div>
-
-            `;
+            });
 
         });
 
-        contenedor.innerHTML =
-            html;
+        ranking.sort(
+            (a, b) =>
+                b.promedio - a.promedio
+        );
+
+        const mejorProveedor =
+            ranking[0];
+
+        let htmlRanking = `
+
+        <div
+        style="
+        background:#f8fff5;
+        border:2px solid #2ecc71;
+        padding:15px;
+        border-radius:6px;
+        margin-bottom:20px;
+        ">
+
+        <h2>
+        🏆 Mejor Proveedor
+        </h2>
+
+        <p>
+
+        <strong>
+        ${mejorProveedor.nombre}
+        </strong>
+
+        </p>
+
+        <p>
+
+        Cumplimiento promedio:
+
+        <strong>
+        ${mejorProveedor.promedio}%
+        </strong>
+
+        </p>
+
+        </div>
+
+        <h2>
+        📊 Ranking
+        </h2>
+
+        `;
+
+        ranking.forEach(
+            (
+                proveedor,
+                index
+            ) => {
+
+                let medalla = "";
+
+                if (index === 0)
+                    medalla = "🥇";
+
+                else if (index === 1)
+                    medalla = "🥈";
+
+                else if (index === 2)
+                    medalla = "🥉";
+
+                else
+                    medalla =
+                    `${index + 1}.`;
+
+                htmlRanking += `
+
+                <div
+                style="
+                    background:#f4f4f4;
+                    padding:10px;
+                    margin-bottom:10px;
+                    border-radius:5px;
+                ">
+
+                    <strong>
+
+                        ${medalla}
+                        ${proveedor.nombre}
+
+                    </strong>
+
+                    <br>
+
+                    ${proveedor.promedio}%
+
+                </div>
+
+                `;
+
+            }
+        );
+
+        let htmlDetalle = "";
+
+        ranking.forEach(
+            proveedor => {
+
+                let estado = "";
+                let color = "";
+
+                if (
+                    proveedor.promedio >= 90
+                ) {
+
+                    estado = "Alta";
+                    color = "#2ecc71";
+
+                }
+
+                else if (
+                    proveedor.promedio >= 75
+                ) {
+
+                    estado = "Media";
+                    color = "#f39c12";
+
+                }
+
+                else {
+
+                    estado = "Baja";
+                    color = "#e74c3c";
+
+                }
+
+                htmlDetalle += `
+
+                <div
+                    style="
+                        background:#f9f9f9;
+                        padding:15px;
+                        margin-bottom:15px;
+                        border-left:5px solid ${color};
+                        border-radius:5px;
+                    ">
+
+                    <h3>
+
+                        ${proveedor.nombre}
+
+                    </h3>
+
+                    <p>
+
+                        Recepciones:
+
+                        <strong>
+                        ${proveedor.recepciones}
+                        </strong>
+
+                    </p>
+
+                    <p>
+
+                        Cumplimiento promedio:
+
+                        <strong>
+                        ${proveedor.promedio}%
+                        </strong>
+
+                    </p>
+
+                    <p>
+
+                        Confiabilidad:
+
+                        <strong>
+                        ${estado}
+                        </strong>
+
+                    </p>
+
+                </div>
+
+                `;
+
+            }
+        );
+
+        contenedor.innerHTML = `
+
+        <div
+        style="
+        display:flex;
+        flex-wrap:wrap;
+        gap:20px;
+        align-items:flex-start;
+        ">
+
+            <div style=" flex:1; min-width:280px;">
+
+                ${htmlRanking}
+
+            </div>
+
+            <div style="flex:2; min-width:380px;">
+            
+                
+            
+
+                ${htmlDetalle}
+
+            </div>
+
+        </div>
+
+        `;
 
     } catch(error) {
 
