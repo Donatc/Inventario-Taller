@@ -154,12 +154,13 @@ async function procesarXMLOrdenCompra(event) {
        
           ordenCompraActual = {};
           productosFisicos = {};
+          document.getElementById( "lista-productos-fisicos" ).innerHTML = "<p style='color:#7f8c8d;'>Esperando carga de XML...</p>";
           xmlCargadoValido = false;
           document.getElementById( "resumen-xml" ).innerHTML = "<p style='color:#7f8c8d;'>Ninguna orden cargada aún.</p>";
           document.getElementById( "contenedor-escanner-entradas" ).style.display = "none"; 
           document.getElementById( "btnFinalizarRecepcion" ).style.display = "none"; 
           detenerCamara();
-
+       document.getElementById( "file-xml" ).value = "";
        return;
       }
 
