@@ -31,7 +31,7 @@
     <button class="nav-tab active admin-only" onclick="cambiarSeccion('registrar', event)">Registrar Nuevo</button>
     <button class="nav-tab" onclick="cambiarSeccion('entradas', event)">Entradas</button>
     <button class="nav-tab" onclick="cambiarSeccion('salidas', event)">Salidas</button>
-    <button class="nav-tab admin-only" onclick="cambiarSeccion('mercancia', event)">Historial</button>
+    <button class="nav-tab admin-only" onclick="cambiarSeccion('mercancia', event)">Historial y Reportes</button>
     <button class="nav-tab" onclick="cambiarSeccion('actual', event)">Inventario</button>
     <button class="nav-tab admin-only" onclick="cambiarSeccion('usuarios', event)"> Usuarios </button>
   </nav>
@@ -172,9 +172,14 @@
   <!-- SECCIÓN 4: Mercancía -->
   <section id="mercancia" class="section-content admin-only-section">
     <h2>Historial / Registro de Entradas y Salidas</h2>
+    <div style="margin-bottom: 20px; display:flex; gap:10px">
+      <button type="button" onclick="mostrarHistorial()" id="btn-historial" style=" background: #3498db; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; ">Historial</button>
+      <button type="button" onclick="mostrarProveedores()" id="btn-proveedores" style=" background: #95a5a6; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; ">Proveedores</button>
+    </div>
     <div id="lista-mercancia">
       <p style="color: #7f8c8d; font-style: italic;">Sin movimientos registrados aún.</p>
     </div>
+    <div id="lista-proveedores"style="display:none;"></div>
   </section>
 
   <!-- SECCIÓN 5: Inventario Actual -->
@@ -388,5 +393,6 @@
 
   <!-- Script externo de la aplicación -->
   <script src="app.js"></script>
+  <script src="reportes.js"></script>
 </body>
 </html>

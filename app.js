@@ -1529,3 +1529,47 @@ function aplicarPermisosPorRol(rol) {
     });
 
 }
+function mostrarHistorial() {
+
+    document.getElementById(
+        "lista-mercancia"
+    ).style.display =
+    "block";
+
+    document.getElementById(
+        "lista-proveedores"
+    ).style.display =
+    "none";
+
+    document.getElementById(
+        "btn-historial"
+    ).style.background =
+    "#3498db";
+
+}
+
+function mostrarProveedores() {
+
+    document.getElementById(
+        "lista-mercancia"
+    ).style.display =
+    "none";
+
+    document.getElementById(
+        "lista-proveedores"
+    ).style.display =
+    "block";
+
+    document.getElementById(
+        "btn-proveedores"
+    ).style.background =
+    "#3498db";
+
+    document.getElementById(
+        "btn-historial"
+    ).style.background =
+    "#95a5a6";
+
+    cargarReporteProveedores();
+
+}
