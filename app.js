@@ -620,6 +620,7 @@ async function guardarNuevoProducto() {
       codigo: codigo,
       nombre: nombre,
       stock: 0,
+      stockMinimo: 0,
       fechaCreacion: new Date()
     });
 
@@ -790,12 +791,15 @@ async function confirmarSalida() {
     });
 
     alert(`[Salida Registrada] Se retiraron ${cantidad} unidades de "${nombreProducto}".`);
+    // ACTUALIZA EL CONTADOR DE PRODUCTOS CRÍTICOS 
+    await cargarInventarioActual();
     reiniciarEscaneo('salida');
-  } catch (error) {
+} catch (error) {
     console.error("Error al registrar salida:", error);
     alert("Error al procesar la salida.");
   }
 }
+
 
 // 5. CARGAR INVENTARIO ACTUAL (Stock)
 async function cargarInventarioActual() {
@@ -814,10 +818,38 @@ async function cargarInventarioActual() {
 
     let html = "<ul style='list-style: none; padding: 0;'>";
     let contadorConStock = 0;
+    let productosCriticos = [];
 
     querySnapshot.forEach((doc) => {
       const prod = doc.data();
       const stock = prod.stock || 0;
+      const stockMinimo =
+          prod.stockMinimo || 0;
+       
+      if (
+          stockMinimo > 0 &&
+          stock <= stockMinimo
+      ) {
+       
+          productosCriticos.push({
+       
+              nombre:
+                  prod.nombre,
+       
+              codigo:
+                  prod.codigo,
+       
+              stock:
+       
+                  stock,
+       
+              stockMinimo:
+       
+                  stockMinimo
+       
+          });
+       
+      }
 
       // FILTRO: Solo mostrar si el stock es mayor a 0
       if (stock > 0) {
@@ -829,13 +861,109 @@ async function cargarInventarioActual() {
       }
     });
 
+    let htmlAlerta = "";
+     
+    if (
+     
+        window.usuarioActual?.rol === "admin"
+     
+        &&
+     
+        productosCriticos.length > 0
+     
+    ) {
+     
+        htmlAlerta += `
+     
+        <div
+        style="
+            background:#fff5f5;
+            border-left:5px solid #e74c3c;
+            padding:15px;
+            margin-bottom:20px;
+            border-radius:5px;
+        ">
+     
+            <h3>
+                🔴 Productos por Reabastecer
+                (${productosCriticos.length})
+            </h3>
+     
+            <p>
+                Se detectaron <strong>${productosCriticos.length}</strong>
+                    producto(s) que alcanzaron su stock mínimo.
+            </p>
+        `;
+     
+        productosCriticos.forEach(prod => {
+     
+            htmlAlerta += `
+     
+            <div
+            style="
+                margin-bottom:12px;
+            ">
+     
+                <strong>
+     
+                    ${prod.nombre}
+     
+                </strong>
+     
+                <br>
+     
+                Código:
+                ${prod.codigo}
+     
+                <br>
+     
+                Stock actual:
+                ${prod.stock}
+     
+                <br>
+     
+                Stock mínimo:
+                ${prod.stockMinimo}
+     
+            </div>
+     
+            `;
+     
+        });
+     
+        htmlAlerta += `</div>`;
+    }
+    const btnStock =
+        document.getElementById(
+            "btn-vista-stock"
+        );
+     
+    if (btnStock) {
+     
+        if (
+            window.usuarioActual?.rol === "admin"
+            &&
+            productosCriticos.length > 0
+        ) {
+     
+            btnStock.innerHTML =
+                `🔴 Stock Actual (${productosCriticos.length})`;
+     
+        } else {
+     
+            btnStock.innerHTML =
+                "Stock Actual";
+     
+        }
+     
+    }
+
     if (contadorConStock === 0) {
       contenedor.innerHTML = "<p style='color: #7f8c8d; font-style: italic;'>No hay productos con stock disponible en este momento (todos están en 0).</p>";
       return;
     }
 
-    html += "</ul>";
-    contenedor.innerHTML = html;
+    html += "</ul>"; contenedor.innerHTML = htmlAlerta + html;
   } catch (error) {
     console.error("Error cargando inventario:", error);
     contenedor.innerHTML = "<p style='color: red;'>Error al cargar las existencias.</p>";
@@ -871,7 +999,8 @@ async function cargarCatalogoGeneralQR() {
           <div style='display: flex; justify-content: center; margin-bottom: 8px;'>
             <canvas id='qr-catalogo-${index}'></canvas>
           </div>
-          <p style='margin: 0; font-size: 0.85em;'>Stock: ${prod.stock || 0}</p>
+          <p style='margin:0; font-size:0.85em;'> Stock: ${prod.stock || 0} </p> <p style='margin-top:8px;'> Mínimo: <input type="number" min="0" value="${prod.stockMinimo || 0}"
+           id="stock-min-${prod.codigo}" style=" width:70px; margin-left:5px; "> </p> <button style=" margin-top:8px; font-size:0.8em; " onclick="guardarStockMinimo('${prod.codigo}')"> Guardar mínimo </button>
         </div>
       `;
     });
@@ -1306,9 +1435,9 @@ async function registrarProductosXML() {
             producto.nombre,
  
           stock: 0,
- 
-          fechaCreacion:
-            new Date()
+          stockMinimo: 0,
+          fechaCreacion:new Date()
+            
         }
       );
       contador++;
@@ -1597,5 +1726,61 @@ function mostrarProveedores() {
     "#95a5a6";
 
     cargarReporteProveedores();
+
+}
+
+async function guardarStockMinimo(
+    codigo
+) {
+
+    try {
+
+        const {
+            doc,
+            updateDoc
+        } = await import(
+            "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+        );
+
+        const valor = parseInt(
+
+            document.getElementById(
+                `stock-min-${codigo}`
+            ).value
+
+        ) || 0;
+
+        await updateDoc(
+
+            doc(
+                window.db,
+                "productos",
+                codigo
+            ),
+
+            {
+
+                stockMinimo:
+                    valor
+
+            }
+
+        );
+
+        alert(
+            "Stock mínimo actualizado."
+        );
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        alert(
+            "Error al actualizar."
+        );
+
+    }
 
 }
