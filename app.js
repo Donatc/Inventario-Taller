@@ -468,7 +468,9 @@ async function registrarRecepcionCompleta() {
                         {
                             stock:
                                 stockActual +
-                                recibidos
+                                recibidos,
+                            correoEnviado:
+                                false
                         }
                     );
 
@@ -621,6 +623,7 @@ async function guardarNuevoProducto() {
       nombre: nombre,
       stock: 0,
       stockMinimo: 0,
+      correoEnviado: false,
       fechaCreacion: new Date()
     });
 
@@ -793,6 +796,7 @@ async function confirmarSalida() {
     alert(`[Salida Registrada] Se retiraron ${cantidad} unidades de "${nombreProducto}".`);
     // ACTUALIZA EL CONTADOR DE PRODUCTOS CRÍTICOS 
     await cargarInventarioActual();
+    await enviarCorreoStockCritico();
     reiniciarEscaneo('salida');
 } catch (error) {
     console.error("Error al registrar salida:", error);
@@ -1436,6 +1440,7 @@ async function registrarProductosXML() {
  
           stock: 0,
           stockMinimo: 0,
+          correoEnviado: false,
           fechaCreacion:new Date()
             
         }
