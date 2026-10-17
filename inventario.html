@@ -31,7 +31,7 @@
     <button class="nav-tab active admin-only" onclick="cambiarSeccion('registrar', event)">Registrar Nuevo</button>
     <button class="nav-tab" onclick="cambiarSeccion('entradas', event)">Entradas</button>
     <button class="nav-tab" onclick="cambiarSeccion('salidas', event)">Salidas</button>
-    <button class="nav-tab admin-only" onclick="cambiarSeccion('mercancia', event)">Historial y Proveedores</button>
+    <button class="nav-tab admin-only" onclick="cambiarSeccion('mercancia', event)">Historial y Estadísticas</button>
     <button class="nav-tab" onclick="cambiarSeccion('actual', event)">Inventario</button>
     <button class="nav-tab admin-only" onclick="cambiarSeccion('usuarios', event)"> Usuarios </button>
   </nav>
@@ -174,7 +174,7 @@
     <h2>Historial / Registro de Entradas y Salidas</h2>
     <div style="margin-bottom: 20px; display:flex; gap:10px">
       <button type="button" onclick="mostrarHistorial()" id="btn-historial" style=" background: #3498db; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; ">Historial</button>
-      <button type="button" onclick="mostrarProveedores()" id="btn-proveedores" style=" background: #95a5a6; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; ">Proveedores</button>
+      <button type="button" onclick="mostrarEstadisticas()" id="btn-estadisticas" style=" background: #95a5a6; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; ">Estadísticas</button>
     </div>
 
     <div
@@ -204,7 +204,8 @@
             ">
      
                 <canvas
-                id="graficoEntradasSalidas">
+                id="graficoEntradasSalidas"
+                style="max-height:300px;">
                 </canvas>
      
             </div>
@@ -220,7 +221,8 @@
             ">
      
                 <canvas
-                id="graficoProductos">
+                id="graficoProductos"
+                style="max-height:300px;">
                 </canvas>
      
             </div>

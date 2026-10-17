@@ -1693,7 +1693,7 @@ function mostrarHistorial() {
     "#3498db";
 
     document.getElementById(
-        "btn-proveedores"
+        "btn-estadisticas"
     ).style.background =
     "#95a5a6";
 
@@ -1706,24 +1706,13 @@ function mostrarHistorial() {
      
         dashboard.style.display =
      
-            window.usuarioActual?.rol === "admin"
+            "none";
      
-            ? "block"
-     
-            : "none";
-     
-    }
-    if (
-        window.usuarioActual?.rol === "admin"
-    ) {
-     
-        cargarDashboard();
-     
-    }
+    } 
 
 }
 
-function mostrarProveedores() {
+function mostrarEstadisticas() {
 
 
     const seccion =
@@ -1750,10 +1739,11 @@ function mostrarProveedores() {
     ).style.display =
     "block";
 
-    document.getElementById( "dashboard-historial" ).style.display = "none";
+    document.getElementById( "dashboard-historial" ).style.display = "block";
+    cargarDashboard();
 
     document.getElementById(
-        "btn-proveedores"
+        "btn-estadisticas"
     ).style.background =
     "#3498db";
 
