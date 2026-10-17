@@ -29,6 +29,7 @@ function cambiarSeccion(seccionId, evento) {
     cambiarVistaInventario('stock');
   } else if (seccionId === 'mercancia') {
     cargarHistorialMercancia();
+    mostrarHistorial();
   } else if (seccionId === 'usuarios') {
     cargarUsuarios();
   }
@@ -1691,6 +1692,35 @@ function mostrarHistorial() {
     ).style.background =
     "#3498db";
 
+    document.getElementById(
+        "btn-proveedores"
+    ).style.background =
+    "#95a5a6";
+
+    const dashboard =
+        document.getElementById(
+            "dashboard-historial"
+        );
+     
+    if (dashboard) {
+     
+        dashboard.style.display =
+     
+            window.usuarioActual?.rol === "admin"
+     
+            ? "block"
+     
+            : "none";
+     
+    }
+    if (
+        window.usuarioActual?.rol === "admin"
+    ) {
+     
+        cargarDashboard();
+     
+    }
+
 }
 
 function mostrarProveedores() {
@@ -1719,6 +1749,8 @@ function mostrarProveedores() {
         "lista-proveedores"
     ).style.display =
     "block";
+
+    document.getElementById( "dashboard-historial" ).style.display = "none";
 
     document.getElementById(
         "btn-proveedores"
