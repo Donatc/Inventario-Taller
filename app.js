@@ -996,7 +996,42 @@ async function cargarCatalogoGeneralQR() {
       productosArray.push(docSnap.data());
     });
 
+    
     productosArray.forEach((prod, index) => {
+        const configuracionStock =
+         
+        window.usuarioActual?.rol === "admin"
+         
+        ? `
+         
+        <p style='margin-top:8px;'>
+         
+            Mínimo:
+         
+            <input
+                type="number"
+                min="0"
+                value="${prod.stockMinimo || 0}"
+                id="stock-min-${prod.codigo}"
+                style="
+                    width:70px;
+                    margin-left:5px;
+                ">
+         
+        </p>
+         
+        <button
+            style="
+                margin-top:8px;
+                font-size:0.8em;
+            "
+            onclick="guardarStockMinimo('${prod.codigo}')">
+         
+            Guardar mínimo
+         
+        </button>
+        ` :"";
+
       html += `
         <div style='background: #fff; border: 1px solid #ddd; padding: 12px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
           <h4 style='margin: 0 0 5px 0; color: #2c3e50;'>${prod.nombre}</h4>
@@ -1004,19 +1039,23 @@ async function cargarCatalogoGeneralQR() {
           <div style='display: flex; justify-content: center; margin-bottom: 8px;'>
             <canvas id='qr-catalogo-${index}'></canvas>
           </div>
-          <p style='margin:0; font-size:0.85em;'> Stock: ${prod.stock || 0} </p> <p style='margin-top:8px;'> Mínimo: <input type="number" min="0" value="${prod.stockMinimo || 0}"
-           id="stock-min-${prod.codigo}" style=" width:70px; margin-left:5px; "> </p> <button style=" margin-top:8px; font-size:0.8em; " onclick="guardarStockMinimo('${prod.codigo}')"> Guardar mínimo </button>
-           <button
-               style="
-                   margin-top:8px;
-                   margin-left:6px;
-                   font-size:0.8em;
-               "
-               onclick="imprimirQRProducto('${prod.codigo}')">
-            
-               🖨 Imprimir QR
-            
-           </button>
+          <p style='margin:0; font-size:0.85em;'>
+              Stock: ${prod.stock || 0}
+          </p>
+           
+          ${configuracionStock}
+           
+          <button
+              style="
+                  margin-top:8px;
+                  margin-left:6px;
+                  font-size:0.8em;
+              "
+              onclick="imprimirQRProducto('${prod.codigo}')">
+           
+              🖨 Imprimir QR
+           
+          </button>
         </div>
       `;
     });
