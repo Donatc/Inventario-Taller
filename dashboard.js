@@ -73,6 +73,10 @@ async function cargarDashboard() {
             conteoProductos
         );
 
+        await cargarPrediccionAgotamiento(
+            conteoProductos
+        );
+
     }
 
     catch(error) {
@@ -273,5 +277,183 @@ function cargarGraficoProductos(
         }
 
     );
+
+}
+
+async function cargarPrediccionAgotamiento(
+    conteoProductos
+) {
+
+    const contenedor =
+        document.getElementById(
+            "prediccion-agotamiento"
+        );
+
+    if (!contenedor) return;
+
+    try {
+
+        const {
+            collection,
+            getDocs
+        } = await import(
+            "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+        );
+
+        const snapshot =
+            await getDocs(
+                collection(
+                    window.db,
+                    "productos"
+                )
+            );
+
+        const top5 =
+
+            Object.entries(
+                conteoProductos
+            )
+
+            .sort(
+                (a, b) =>
+                    b[1] - a[1]
+            )
+
+            .slice(0, 5);
+
+        let html = `
+
+        <h3>
+        📈 Predicción de Agotamiento
+        </h3>
+
+        `;
+
+        top5.forEach(([nombre, consumo]) => {
+
+            let producto = null;
+
+            snapshot.forEach(doc => {
+
+                const prod =
+                    doc.data();
+
+                if (
+                    prod.nombre === nombre
+                ) {
+
+                    producto = prod;
+
+                }
+
+            });
+
+            if (!producto) return;
+
+            const stock =
+                producto.stock || 0;
+
+            let diasEstimados = 999;
+
+            if (consumo > 0) {
+
+                diasEstimados =
+                    Math.ceil(
+                        stock / consumo
+                    );
+
+            }
+
+            let estado = "";
+            let color = "";
+
+            if (diasEstimados <= 7) {
+
+                estado =
+                    "🔴 Crítico";
+
+                color =
+                    "#e74c3c";
+
+            }
+
+            else if (
+                diasEstimados <= 30
+            ) {
+
+                estado =
+                    "🟡 Reordenar pronto";
+
+                color =
+                    "#f39c12";
+
+            }
+
+            else {
+
+                estado =
+                    "🟢 Saludable";
+
+                color =
+                    "#2ecc71";
+
+            }
+
+            html += `
+
+            <div
+            style="
+                border-left:5px solid ${color};
+                background:#f9f9f9;
+                padding:12px;
+                margin-bottom:12px;
+                border-radius:5px;
+            ">
+
+                <strong>
+                    ${nombre}
+                </strong>
+
+                <br>
+
+                Stock actual:
+                ${stock}
+
+                <br>
+
+                Consumo registrado:
+                ${consumo}
+
+                <br>
+
+                Duración estimada:
+                ${diasEstimados}
+                días
+
+                <br>
+
+                <strong>
+                    ${estado}
+                </strong>
+
+            </div>
+
+            `;
+
+        });
+
+        contenedor.innerHTML =
+            html;
+
+    }
+
+    catch(error) {
+
+        console.error(
+            "Predicción:",
+            error
+        );
+
+    }
 
 }
