@@ -1006,6 +1006,17 @@ async function cargarCatalogoGeneralQR() {
           </div>
           <p style='margin:0; font-size:0.85em;'> Stock: ${prod.stock || 0} </p> <p style='margin-top:8px;'> Mínimo: <input type="number" min="0" value="${prod.stockMinimo || 0}"
            id="stock-min-${prod.codigo}" style=" width:70px; margin-left:5px; "> </p> <button style=" margin-top:8px; font-size:0.8em; " onclick="guardarStockMinimo('${prod.codigo}')"> Guardar mínimo </button>
+           <button
+               style="
+                   margin-top:8px;
+                   margin-left:6px;
+                   font-size:0.8em;
+               "
+               onclick="imprimirQRProducto('${prod.codigo}')">
+            
+               🖨 Imprimir QR
+            
+           </button>
         </div>
       `;
     });
@@ -1016,6 +1027,10 @@ async function cargarCatalogoGeneralQR() {
     productosArray.forEach((prod, index) => {
       const canvasElement = document.getElementById(`qr-catalogo-${index}`);
       if (canvasElement && window.QRCode) {
+            canvasElement.setAttribute(
+                "data-codigo",
+                prod.codigo
+            );
         QRCode.toCanvas(canvasElement, prod.codigo, { width: 130 }, function (err) {
           if (err) console.error("Error generando QR para " + prod.codigo, err);
         });
@@ -1809,5 +1824,133 @@ async function guardarStockMinimo(
         );
 
     }
+
+}
+
+function imprimirQRProducto(
+    codigo
+) {
+
+    const qrCanvas =
+        document.querySelector(
+            `canvas[data-codigo="${codigo}"]`
+        );
+
+    if (!qrCanvas) {
+
+        alert(
+            "No se encontró el QR."
+        );
+
+        return;
+
+    }
+
+    const imagenQR =
+        qrCanvas.toDataURL(
+            "image/png"
+        );
+
+    const ventana =
+        window.open(
+            "",
+            "_blank"
+        );
+
+    ventana.document.write(`
+
+    <html>
+
+    <head>
+
+        <title>
+            Etiqueta QR
+        </title>
+
+        <style>
+
+            @page {
+                size: auto;
+                margin: 5mm;
+            
+            }
+            
+            html,
+            body {
+            
+                margin: 0;
+                padding: 0;
+            
+            }
+
+            body {
+
+                font-family:
+                Arial,
+                sans-serif;
+
+                display:flex;
+
+                justify-content:center;
+
+                align-items:center;
+
+                height:100vh;
+
+                text-align:center;
+
+            }
+
+            .etiqueta {
+
+                border:1px solid #000;
+
+                padding:20px;
+
+                width:250px;
+
+            }
+
+            img {
+
+                width:220px;
+
+                height:220px;
+
+            }
+
+        </style>
+
+    </head>
+
+    <body>
+
+        <div
+        class="etiqueta"style="page-break-inside:avoid;">
+
+            <img
+            src="${imagenQR}">
+
+            <h3>
+                ${codigo}
+            </h3>
+
+        </div>
+
+    </body>
+
+    </html>
+
+    `);
+
+    ventana.document.close();
+
+    ventana.focus();
+
+    setTimeout(() => {
+
+        ventana.print();
+
+    }, 500);
 
 }
